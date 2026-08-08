@@ -493,73 +493,6 @@ If persists, ensure Flask is running on the same machine as frontend.
 3. Check Network tab → see if `/api/student/jobs` returns data
 4. Verify Flask routes in `routes/student.py` are correct
 
----
-
-## 📈 Learning Path
-
-### Week 1: Vue Basics
-- [ ] Modify `Login.js` to add "Forgot Password?" link (UI only)
-- [ ] Add client-side form validation (email format, password strength)
-- [ ] Style components with custom CSS classes
-
-### Week 2: Backend Integration
-- [ ] Add a new field to Job model (e.g., `company_logo_url`)
-- [ ] Update API endpoint to return it
-- [ ] Display company logo in StudentDashboard.js
-
-### Week 3: Advanced Features
-- [ ] Implement search/filter for jobs (e.g., by salary range)
-- [ ] Add pagination to job list (show 10 jobs per page)
-- [ ] Create a "Saved Jobs" feature (requires new database table)
-
-### Week 4: Performance & Scaling
-- [ ] Implement caching: cache job list for 1 hour
-- [ ] Add loading spinners to API calls
-- [ ] Measure query performance, optimize slow endpoints
-
-### Week 5: Deployment
-- [ ] Deploy backend to Heroku or AWS
-- [ ] Deploy frontend to Netlify or Vercel
-- [ ] Set up production database (PostgreSQL instead of SQLite)
-
----
-
-## 🚢 Deployment
-
-### Prepare for Production
-
-1. **Environment variables** (create `.env` file):
-   ```
-   FLASK_ENV=production
-   SECRET_KEY=<generate-secure-key>
-   SQLALCHEMY_DATABASE_URI=postgresql://<user>:<pass>@<host>/<db>
-   MAIL_SERVER=smtp.gmail.com
-   MAIL_PORT=587
-   CELERY_BROKER_URL=redis://<redis-host>:6379/0
-   ```
-
-2. **Use production server** (not Flask dev server):
-   ```bash
-   pip install gunicorn
-   gunicorn -w 4 app:app  # 4 worker processes
-   ```
-
-3. **Heroku Deployment**:
-   ```bash
-   heroku create my-placement-portal
-   git push heroku main
-   heroku ps:scale worker=1  # Scale Celery worker
-   ```
-
-4. **Database migration** (from SQLite to PostgreSQL):
-   ```bash
-   # Update SQLALCHEMY_DATABASE_URI to PostgreSQL
-   # Dump SQLite: python -c "import init_db; init_db.init_db()"
-   # Restore to PostgreSQL: Use SQLAlchemy migration tools
-   ```
-
----
-
 ## 📊 Project Metrics
 
 - **Frontend**: 5 Vue components, ~1500 lines of JavaScript
@@ -567,10 +500,6 @@ If persists, ensure Flask is running on the same machine as frontend.
 - **Database**: 4 tables with relationships
 - **Tasks**: 3 Celery tasks (email, CSV export, interview scheduling)
 - **Estimated Learning Time**: 20-30 hours (beginner) | 8-12 hours (intermediate)
-
----
-
-## 🤝 Contributing & Extending
 
 ### Ideas for Enhancement
 1. **Add interview scheduling UI** (currently backend-only)
