@@ -8,7 +8,7 @@ A production-ready SPA built with **Vue.js + Flask** demonstrating real-world fu
 
 ## 🎯 Learning Objectives
 
-By working through this project, you'll master:
+By working through this project, I mastered :
 
 - **Vue.js Fundamentals**: Component composition, props/emit patterns, lifecycle hooks, conditional rendering, list management
 - **SPA Architecture**: Client-side routing, state management across components, API communication patterns
