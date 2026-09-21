@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+ redis:
+  image: redis:6
+  ports:
+     -'6379:6379'
+
+ mailhog:
+  image: mailhog/mailhog
+  ports:
+     - "1025:1025"
+     - "8025:8025"
+
+ web-server:
+  build: .
+  ports:
+     - "5000:5000"
+  environment:
+     REDIS_URL: redis://redis:6379/0
+     MAIL_SERVER: mailhog
+     FLASK_ENV: production
+     MAIL_PORT: 1025
+  depends_on:
+     - redis
+     - mailhog
+  command: gunicorn --bind 0.0.0.0:5000 app:app
+
+ celery-worker:
+  build: .
+  environment:
+     REDIS_URL: redis://redis:6379/0
+     MAIL_SERVER: mailhog
+     FLASK_ENV: production
+     MAIL PORT: 1025
+  depends_on:
+     - redis
+     - mailhog
+  command: celery -A tasks.celery_app worker --loglevel=info
+
+  celery-beat:
+  build: .
+  environment:
+     REDIS_URL: redis://redis:6379/0
+     MAIL_SERVER: mailhog
+     FLASK_ENV: production
+     MAIL PORT: 1025
+  depends_on:
+     - redis
+     - mailhog
+  command: celery -A celeryset beat --loglevel=info
+  
+ 
+
