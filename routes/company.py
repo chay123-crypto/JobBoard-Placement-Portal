@@ -44,6 +44,8 @@ def apply_drive():
             return jsonify({'error':f'required fields missing. check {field}'}),400
     try:
         deadline=datetime.strptime(data.get('deadline'),'%Y-%m-%d')
+        if deadline<datetime.now():
+            return jsonify({'error': 'Deadline must be in future'}), 400
     except ValueError:
         return jsonify({'error':'Deadline cannot be in the past'}),400
     drive=PlacementDrive(company_id=company.id,branches=data.get('branches'),status='pending',deadline=deadline,skills=data.get('skills'),jobtitle=data.get('jobtitle'),job_desc=data.get('job_desc'),cgpa_above=data.get('cgpa_above'),open_postings=data.get('open_postings'),age_cat=data.get('age_cat', ''),salary=data.get('salary'))
@@ -123,6 +125,8 @@ def see_drives(company_id):
     if not company_id==current_user.id:
         return jsonify({'error':'company not found'}),404
     company=CompanyProfile.query.filter_by(user_id=current_user.id).first()
+    if not company or company.id!=company_id:
+        return jsonify({'error':'Unauthorized'}),403
     drive=PlacementDrive.query.filter_by(company_id=company.id).all()
     lis=[{'drive_id':d.drive_id,'jobtitle':d.jobtitle,'job_desc':d.job_desc,'open_postings':d.open_postings,'branches':d.branches,'cgpa_above':d.cgpa_above,'age_cat':d.age_cat,'deadline':d.deadline.strftime('%Y-%m-%d'),'status':d.status,'skills':d.skills} for d in drive]
     return jsonify({'drives':lis}),200
