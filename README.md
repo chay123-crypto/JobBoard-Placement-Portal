@@ -15,7 +15,7 @@ By working through this project, I mastered :
 - **Backend Integration**: RESTful API design, CORS, authentication, role-based access control (RBAC)
 - **Async Operations**: Promises, async/await, handling API responses and errors
 - **Production Patterns**: Caching strategies (Flask-Caching), background task queues (Celery), email notifications
-- **Database Design**: SQLAlchemy ORM, model relationships, migrations
+- **Database Design**: SQLAlchemy ORM, model relationships, migrations with indexing foreign key attributes.
 - **Full-Stack Debugging**: Browser DevTools + Flask logging to trace issues end-to-end
 
 ---
