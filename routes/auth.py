@@ -26,11 +26,15 @@ def register():
     db.session.flush()
 
     if role=='student':
+        try:
+            dob=datetime.strptime(inputs.get('dob'),'%Y-%m-%d').date()
+        except (ValueError,TypeError):
+            return jsonify({'error':'Invalid DOB format'}),400
         profile=StudentProfile(
             user_id=acct.id,
             name=inputs.get('name'),
             dept=inputs.get('dept'),
-            dob=datetime.strptime(inputs.get('dob'),'%Y-%m-%d').date(),
+            dob=dob,
             year=inputs.get('year'),
             cgpa=inputs.get('cgpa'),
             resume_path=inputs.get('resume_path','')
