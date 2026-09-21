@@ -9,21 +9,25 @@ from routes.student import student_bp
 from init_db import init
 from cache import init_cache
 from flask_mail import Mail
+import os
 
 manager=LoginManager()
 mail=Mail()
 
-def create_app():
+def create_app(test_config=None):
     app=Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///portal.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
-    app.config['SECRET_KEY']='wxyzab'
+    app.config['SECRET_KEY']=os.environ.get("SECRET_KEY",'wxyzab')
     app.config['MAIL_SERVER']='localhost'
     app.config['MAIL_PORT'] =1025
     app.config['MAIL_USE_TLS']=False
     app.config['MAIL_USERNAME']=None
     app.config['MAIL_PASSWORD']=None
     app.config['MAIL_DEFAULT_SENDER']='noreply@placement-portal.com'
+
+    if test_config:
+        app.config.update(test_config)
     
     init_cache(app)
     
