@@ -89,6 +89,9 @@ def edit_profile(student_id):
         student.dept=inputs['dept']
     if 'resume' in request.files:
         file=request.files['resume']
+        ALLOWED={'pdf','doc','docx'}
+        if not file.filename.split('.')[-1].lower() in ALLOWED:
+            return jsonify({'error': 'Only PDF/DOC/DOCX allowed'}),400
         if file.filename:
             os.makedirs(upload_folder,exist_ok=True)
             filename=secure_filename(f'{student_id} - {file.filename}')
@@ -166,7 +169,7 @@ def withdraw(application_id):
         return jsonify({'error':'No application found'}),404
     if appl.student_id!=student.id:
             return jsonify({'error':'Unauthorized'}),403
-    if appl.status in (['rejected','shortlisted','selected','withdrawn']):
+    if appl.status in ('rejected','shortlisted','selected','withdrawn'):
         return jsonify({'error':'Cannot withdraw application'}),400
     appl.status='withdrawn'
     db.session.commit()
