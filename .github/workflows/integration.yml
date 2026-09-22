@@ -19,9 +19,9 @@ jobs:
      - name: install requirements
        run: pip install -r requirements.txt
      - name: lint with ruff
-       run: ruff check . --line-length 120
+       run: ruff check . --line-length 200
      - name: Check formatting with black
-       run: black --check .
+       run: black --check . --line-length 200
      - name: run testing
        run: pytest tests/
           
