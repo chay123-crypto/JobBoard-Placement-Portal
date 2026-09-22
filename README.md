@@ -2,8 +2,9 @@
 
 A production-ready SPA built with **Vue.js + Flask** demonstrating real-world full-stack development patterns. This project showcases role-based dashboards, RESTful API design, background task processing, and component-driven architecture.
 
-**Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture
+**Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture | CI/CD implementation basics
 
+Demo Link: https://jobboard-placement-portal.onrender.com/
 ---
 
 ## 🎯 Learning Objectives
