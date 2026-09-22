@@ -58,7 +58,7 @@ class Application(db.Model):
 class PlacementDrive(db.Model):
     __tablename__="placementdrives"
     drive_id=db.Column(db.Integer,primary_key=True)
-    company_id=db.Column(db.Integer,db.ForeignKey('companyprofile.id'),index=True,index=True,nullable=False)
+    company_id=db.Column(db.Integer,db.ForeignKey('companyprofile.id'),index=True,nullable=False)
     jobtitle=db.Column(db.String(120),nullable=False)
     job_desc=db.Column(db.String(255))
     open_postings=db.Column(db.Integer,nullable=False)
