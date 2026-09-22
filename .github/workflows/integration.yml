@@ -38,5 +38,7 @@ jobs:
          git push
      - name: run testing
        run: pytest tests/
+       env:
+          PYTHONPATH: .
           
        
