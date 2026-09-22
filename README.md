@@ -444,6 +444,16 @@ interview_time (nullable)
 - Status field allows workflow progression (applied → interview → accepted)
 
 ---
+## 🔄 CI/CD Pipeline
+
+This project uses **GitHub Actions** for continuous integration. On every push or pull request to `main`, the pipeline automatically:
+
+1. Installs Python 3.10 and all dependencies from `requirements.txt`
+2. Lints the codebase with **Ruff** (auto-fixing what it can)
+3. Formats code with **Black** — if changes are made, they're auto-committed back to `main`
+4. Runs the **Pytest** test suite (`tests/`), covering authentication and role-based access control
+
+The workflow is defined in `.github/workflows/integration.yml`. Build status for each commit is visible under the repo's **Actions** tab.
 
 ## 🐛 Common Issues & Fixes
 
