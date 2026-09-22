@@ -36,7 +36,7 @@ const Login={
     }
   },
   template:`
-  <div class="row justify-content-center mt-5">
+  <div class="row justify-content-center mt-5" style="background-image:url('/static/background.png');background-size:cover;background-position:center;min-height:100vh;">
   <div class="col-md-4">
   <div class="card shadow mt-5">
    <div class="card-body p-4">

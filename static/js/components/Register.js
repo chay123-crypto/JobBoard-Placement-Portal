@@ -68,7 +68,7 @@ const Register={
         }
     },
     template:`
-    <div class="row justify-content-center mt-5">
+    <div class="row justify-content-center mt-5" style="background-image:url('/static/background.png');background-size:cover;background-position:center;min-height:100vh;">
     <div class="col-md-10">
     <div class="card shadow">
     <div class="card-body p-4 m-2">
