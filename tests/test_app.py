@@ -10,7 +10,7 @@ TEST_CONFIG={
     "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     "SECRET_KEY": "test-secret",
-    "CACHE_TYPE": "SimpleCache",
+    "CACHE_TYPE": "NullCache",
     "MAIL_SUPPRESS_SEND": True,
     "WTF_CSRF_ENABLED": False,
 }
@@ -18,9 +18,8 @@ TEST_CONFIG={
 
 @pytest.fixture(scope="function")
 def app():
-    with patch("celeryset.celery_app"), patch("cache.Cache.init_app"):
+    with patch("celeryset.celery_app"):
         application, _mail=create_app(TEST_CONFIG)
-    application.config["CACHE_TYPE"]="SimpleCache"
     with application.app_context():
         db.create_all()
         yield application
