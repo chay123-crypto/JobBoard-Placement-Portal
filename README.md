@@ -1,22 +1,25 @@
 # JobBoard – Full-Stack Placement Portal
 
-A production-ready SPA built with **Vue.js + Flask** demonstrating real-world full-stack development patterns. This project showcases role-based dashboards, RESTful API design, background task processing, and component-driven architecture.
+A production-ready SPA built with **Vue.js + Flask** demonstrating real-world full-stack development patterns. This project showcases role-based dashboards, RESTful API design, background task processing, component-driven architecture, robust test coverage with pytest, and automated CI/CD workflows.
 
-**Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture | CI/CD implementation basics
+**Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture | CI/CD implementation basics | Comprehensive Flask testing
 
 Demo Link: https://jobboard-placement-portal.onrender.com/
+
 ---
 
 ## 🎯 Learning Objectives
 
-By working through this project, I mastered :
+By working through this project, I mastered:
 
 - **Vue.js Fundamentals**: Component composition, props/emit patterns, lifecycle hooks, conditional rendering, list management
 - **SPA Architecture**: Client-side routing, state management across components, API communication patterns
 - **Backend Integration**: RESTful API design, CORS, authentication, role-based access control (RBAC)
 - **Async Operations**: Promises, async/await, handling API responses and errors
-- **Production Patterns**: Caching strategies (Flask-Caching), background task queues (Celery), email notifications
-- **Database Design**: SQLAlchemy ORM, model relationships, migrations with indexing foreign key attributes.
+- **Production Patterns**: Dynamic caching strategies (`Flask-Caching`), background task queues (`Celery`), email notifications (`Flask-Mail`)
+- **Database Design**: SQLAlchemy ORM, model relationships, migrations with indexing foreign key attributes
+- **Comprehensive Testing**: 90 unit & integration tests using `pytest`, in-memory SQLite, fixture isolation, and Celery/Redis mocking
+- **CI/CD Pipeline**: GitHub Actions workflows for automated linting (`Ruff`), auto-formatting (`Black`), and running test suites
 - **Full-Stack Debugging**: Browser DevTools + Flask logging to trace issues end-to-end
 
 ---
@@ -32,6 +35,8 @@ By working through this project, I mastered :
 | **Email Notifications** | Celery + Flask-Mail | Async task processing, scheduled jobs |
 | **CSV Export** | Celery background tasks | Long-running operations, progress tracking |
 | **Caching Layer** | Flask-Caching | Performance optimization, cache invalidation |
+| **Automated Testing** | Pytest | 90 tests covering all routes across all 4 blueprints |
+| **CI/CD Pipeline** | GitHub Actions | Automated linting, code formatting, and test execution on push/PR |
 
 ---
 
@@ -40,43 +45,62 @@ By working through this project, I mastered :
 | Layer | Technologies |
 |-------|--------------|
 | **Frontend** | Vue.js, JavaScript (ES6+), HTML5, Bootstrap 5 |
-| **Backend** | Flask, Flask-SQLAlchemy, Flask-Login |
+| **Backend** | Flask, Flask-SQLAlchemy, Flask-Login, Flask-Mail, Flask-Caching |
 | **Database** | SQLite (easily swapped to PostgreSQL) |
 | **Task Queue** | Celery + Redis message broker |
 | **Scheduling** | Celery Beat (cron-like scheduler) |
 | **Email Testing** | MailHog (local SMTP catcher) |
-| **Caching** | Flask-Caching (Redis/memory backends) |
+| **Caching** | Flask-Caching (Redis / NullCache for testing) |
+| **Testing** | Pytest, Pytest-Flask, Pytest-Cov |
+| **Code Quality** | Ruff (linter), Black (formatter) |
+| **CI/CD** | GitHub Actions workflows |
+| **Containerization** | Docker, Docker Compose |
 
 ---
 
 ## 📁 Project Structure
 
+Every file in the codebase and its respective responsibility:
+
 ```
-PlaceMe/
-├── app.py                      # Flask app factory & configuration
+JobBoard-Placement-Portal/
+├── app.py                      # Flask app factory, configuration & blueprint registration
 ├── models/
-│   └── models.py               # SQLAlchemy ORM models (User, Company, Job, Application)
+│   └── models.py               # SQLAlchemy ORM models (User, StudentProfile, CompanyProfile, Application, PlacementDrive, Interview)
 ├── routes/
-│   ├── auth.py                 # Login/Register endpoints
-│   ├── admin.py                # Admin dashboard API (stats, company/posting management)
-│   ├── student.py              # Student API (browse jobs, apply, track applications)
-│   └── company.py              # Company API (post jobs, review applications)
-├── tasks.py                    # Celery tasks (email reminders, CSV export, reports)
+│   ├── auth.py                 # Authentication endpoints (register, login, check auth, logout)
+│   ├── admin.py                # Admin dashboard API (stats, company/posting management, status updates)
+│   ├── student.py              # Student API (browse jobs, eligible drives, apply, track applications, withdraw, export CSV)
+│   └── company.py              # Company API (post drives, review applications, schedule interviews, export CSV)
+├── tasks.py                    # Celery background tasks (email reminders, CSV export, monthly reports)
 ├── celeryset.py                # Celery configuration & beat schedule
-├── cache.py                    # Flask-Caching setup
+├── cache.py                    # Flask-Caching setup (supports Redis / NullCache dynamically)
 ├── decorator.py                # Custom decorators (@login_required, @role_required)
-├── init_db.py                  # Database initialization & seed data
+├── init_db.py                  # Database initialization & seed data (creates default admin)
+├── requirements.txt            # Python dependencies (Flask, SQLAlchemy, Celery, pytest, ruff, black, etc.)
+├── Dockerfile                  # Docker container definition
+├── docker-compose.yml          # Multi-container setup (App, Redis, Celery worker)
+├── .gitignore                  # Git ignore patterns
+├── tests/
+│   └── test_app.py             # Comprehensive Pytest suite with 90 tests across all route blueprints
 ├── templates/
 │   └── index.html              # Single HTML shell (Vue mounts here)
-├── static/js/
-│   ├── main.js                 # Vue app entry point, routing, global state
-│   └── components/
-│       ├── Login.js            # Authentication component
-│       ├── Register.js         # Registration form
-│       ├── AdminDashboard.js   # Admin overview (stats, user mgmt)
-│       ├── StudentDashboard.js # Student job browse & applications
-│       └── CompanyDashboard.js # Company job posting & applicant review
-├── app.yaml                    # App Engine deployment config (optional)
+├── static/
+│   ├── background.png          # UI background image asset
+│   └── js/
+│       ├── main.js             # Vue app entry point, routing, global state
+│       └── components/
+│           ├── Login.js            # Authentication component
+│           ├── Register.js         # Registration form (Student & Company)
+│           ├── AdminDashboard.js   # Admin overview (stats, user & drive mgmt)
+│           ├── StudentDashboard.js # Student job browse, eligibility & applications
+│           └── CompanyDashboard.js # Company job posting, applicant review & interview scheduling
+├── .github/
+│   └── workflows/
+│       ├── integration.yml     # CI pipeline (Ruff linting, Black formatting, Pytest execution)
+│       └── main.yml            # Scheduled keep-alive ping workflow
+├── specs/
+│   └── app.yaml                # App Engine deployment config
 └── README.md
 ```
 
@@ -86,18 +110,17 @@ PlaceMe/
 
 ## ⚙️ Prerequisites
 
-- **Python 3.8+**
+- **Python 3.8+** (Python 3.10+ recommended)
 - **WSL, Linux, or macOS** (Redis and MailHog run on Unix-like systems)
   - Windows users: Use WSL2 or Docker
 - **Git**
-- **Redis** (for message broker)
+- **Redis** (for message broker in live mode)
 - **MailHog** (for email testing)
 
 ### Quick Check
 ```bash
 python --version    # Should be 3.8+
 redis-cli --version
-# mailhog should be in PATH after install
 ```
 
 ---
@@ -106,8 +129,8 @@ redis-cli --version
 
 ### Step 1: Clone & Enter Directory
 ```bash
-git clone <repo-url>
-cd PlaceMe
+git clone https://github.com/chay123-crypto/JobBoard-Placement-Portal.git
+cd JobBoard-Placement-Portal
 ```
 
 ### Step 2: Create Virtual Environment
@@ -115,11 +138,10 @@ cd PlaceMe
 # Create
 python -m venv venv
 
-# Activate
-# On Windows:
+# Activate on Windows PowerShell:
 venv\Scripts\activate
 
-# On macOS/Linux:
+# Activate on macOS/Linux:
 source venv/bin/activate
 ```
 
@@ -128,21 +150,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Or manually:**
-```bash
-pip install flask==2.3.0 flask-sqlalchemy==3.0.0 flask-login==0.6.2 \
-            flask-mail==0.9.1 flask-caching==2.0.2 celery==5.3.0 \
-            redis==4.5.0 numpy==1.24.0 werkzeug==2.3.0
-```
-
 ### Step 4: Initialize Database
 ```bash
 python init_db.py
 ```
-This creates `placement.db` with seed data:
-- Admin user: `admin` / `admin123`
-- 2 sample companies
-- 5 sample students
+This creates `portal.db` / `placement.db` with default seed data:
+- Admin user: `admin@placement.in` / `admin@123`
 
 ### Step 5: Configure Email Testing (MailHog)
 
@@ -184,11 +197,7 @@ mailhog
 
 ### Terminal 2: Redis (Message Broker)
 ```bash
-# If installed via apt/brew:
 redis-server
-
-# Or Docker (already running):
-# (skip this step)
 ```
 
 ### Terminal 3: Flask App
@@ -209,26 +218,79 @@ export PYTHONPATH=.
 celery -A tasks.celery_app worker --loglevel=info
 ```
 - Watches for background tasks and executes them
-- You'll see logs like `[tasks.send_reminder] ... received`
+- Logs like `[tasks.get_reminders] ... received` will appear
 
 ### Terminal 5: Celery Beat (Scheduler)
 ```bash
 celery -A celeryset beat -l DEBUG
 ```
-- Triggers scheduled tasks (e.g., daily email reminders at 9 AM)
+- Triggers scheduled tasks (e.g., monthly reports)
 - Check `celeryset.py` to see the schedule
 
 ---
 
-## 🧪 Quick Test Flow
+## 🧪 Comprehensive Testing Suite (`tests/test_app.py`)
+
+The project contains a complete **90-test suite** in `tests/test_app.py` covering all routes and edge cases.
+
+### Test Coverage Highlights
+* **Auth Tests**: Registration (student, company, missing role, invalid role, duplicate email, duplicate contact, invalid DOB), Login (success, wrong password, non-existent user), Check Auth, Logout.
+* **Admin Tests**: Dashboard metrics (unauthenticated, non-admin, admin success), Search Student/Company (found, not found, forbidden), View Students/Companies, All Drives, Applicants per Drive, Approve/Reject Company & Drive (404, invalid action, success), User Activation/Deactivation, Placement Stats.
+* **Company Tests**: Dashboard (unauthenticated, not approved, approved), Create Drive (success, missing fields, past deadline, forbidden), All Applicants, Student Info, Drive Applicants, Update Application Status (shortlisted, selected, rejected, invalid action), Close Drive, Company Info, See Drives, Export CSV, CSV Task Status, Schedule Interview.
+* **Student Tests**: Dashboard, View Companies, All Drives, Applications (forbidden, success), Apply Drive (success, duplicate application, low CGPA, past deadline), Application Withdrawal (success, already selected, 404), Eligible Drives, Placement History, Student Info, Resume Retrieval, Export CSV, CSV Task Status.
+
+### Running Tests
+```bash
+# Run the complete suite
+python -m pytest tests/test_app.py
+
+# Run with verbose output
+python -m pytest tests/test_app.py -v
+
+# Run a specific test class
+python -m pytest tests/test_app.py::TestCompanyCreateDrive
+```
+
+*Note: The test suite dynamically configures `CACHE_TYPE = "NullCache"` and mocks Celery tasks (`export_csv.delay`, `get_reminders.delay`), enabling rapid, isolated execution in memory without requiring a live Redis server.*
+
+---
+
+## 🔄 CI/CD Pipeline (GitHub Actions)
+
+This project uses **GitHub Actions** for continuous integration. On every `push` or `pull_request` to `main`, `.github/workflows/integration.yml` automatically:
+
+1. Installs Python 3.10 and dependencies from `requirements.txt`
+2. Lints code with **Ruff** (`ruff check . --fix --ignore E501,F841`)
+3. Auto-formats code with **Black** (`black . --line-length 350`)
+4. Runs the **Pytest** test suite (`pytest tests/` with `PYTHONPATH: .`)
+
+Build status for each commit is visible under the repository's **Actions** tab.
+
+---
+
+## 🐳 Docker Setup
+
+Run the entire application stack with Docker Compose:
+
+```bash
+# Build and start containers
+docker-compose up --build
+
+# Run in background
+docker-compose up -d
+```
+
+---
+
+## 🎮 Quick Test Flow
 
 1. **Open** `http://localhost:5000`
-2. **Register** a new student account (or use seed: `student1` / `password123`)
-3. **Browse jobs** posted by companies
-4. **Apply** to a job
-5. **Check MailHog** (`http://localhost:8025`) — you should see confirmation emails
-6. **Log in as Admin** and view application stats
-7. **Log in as Company** and review applications
+2. **Register** a new student or company account
+3. **Browse drives** posted by companies
+4. **Apply** to a drive
+5. **Check MailHog** (`http://localhost:8025`) — view confirmation emails
+6. **Log in as Admin** (`admin@placement.in` / `admin@123`) to approve companies & view stats
+7. **Log in as Company** to review applications and schedule interviews
 
 ---
 
@@ -238,16 +300,16 @@ Three user roles control access:
 
 | Role | Access | API Prefix |
 |------|--------|-----------|
-| **Admin** | Approve companies, view all stats, manage users | `/api/admin` |
-| **Student** | Browse jobs, apply, track applications | `/api/student` |
-| **Company** | Post jobs, review applications, schedule interviews | `/api/company` |
+| **Admin** | Approve companies/drives, view stats, user management | `/admin` |
+| **Student** | Browse jobs, view eligible drives, apply, track applications | `/student` |
+| **Company** | Post drives, review applications, schedule interviews | `/company` |
 
 **Authentication Flow**:
 1. User registers → password hashed via `werkzeug.security`
 2. Login creates Flask session (server-side)
 3. Each API call includes session cookie
-4. Flask decorators enforce role-based access
-5. Frontend hides UI elements based on logged-in user role
+4. Flask `@role_required` decorator enforces access control
+5. Frontend renders UI based on logged-in user role
 
 ---
 
@@ -255,100 +317,99 @@ Three user roles control access:
 
 ### `main.js` — App Entry Point
 - Initializes Vue app
-- Sets up basic routing (simulated via URL hash)
+- Sets up client routing (simulated via URL hash)
 - Manages global user state
-- Fetches user role from `/api/auth/user` on load
-
-**Key snippet:**
-```javascript
-// Fetch current user on app load
-fetch('/api/auth/user')
-  .then(r => r.json())
-  .then(data => app.currentUser = data.user)
-  .catch(() => console.log('Not logged in'));
-```
+- Fetches auth status from `/auth/check` on load
 
 ### `Login.js` — Authentication
-- Form with email + password
-- POST to `/api/auth/login`
-- Redirects to dashboard on success
-- Displays errors if login fails
+- Email + password form
+- POST to `/auth/login`
+- Redirects to role dashboard on success
+- Displays validation errors on failure
 
-**Learning points:**
-- Form `@submit` event handling
-- Async/await with `fetch()`
-- Error handling with `.catch()`
-- Redirecting user via `window.location.hash`
+### `Register.js` — Registration
+- Tabbed registration for Student vs Company
+- Client-side validation for date format, CGPA, required fields
+- POST to `/auth/register`
 
 ### `StudentDashboard.js` — Browse & Apply
-- Fetches job list from `/api/student/jobs`
-- Renders table with job details
-- Click "Apply" → POST to `/api/student/apply`
-- Shows confirmation or error
-
-**Learning points:**
-- `v-for` for list rendering
-- Dynamic binding with `:key`
-- Conditional rendering with `v-if`
-- Calling API methods from Vue methods
+- Fetches eligible and approved drives from `/student/all_drives` and `/student/drives/eligible`
+- Renders tables with drive requirements
+- "Apply" button → POST to `/student/drive/apply/:id`
+- Application status tracking & profile resume management
 
 ### `CompanyDashboard.js` — Post & Review
-- Form to post a new job (title, description, deadline)
-- Renders applications received with candidate details
-- "Accept" / "Reject" buttons update status
-- Triggers Celery email task on decision
+- Form to post placement drive (job title, branches, CGPA cutoff, deadline, salary)
+- Renders applicants with student details and CGPA
+- Status management (Shortlist / Select / Reject)
+- Schedule interview modal → POST to `/company/schedule_interview/:app_id`
 
-**Learning points:**
-- Two-way binding with `v-model`
-- Handling form submission
-- Managing component state (`data()`)
-- Iterating nested data (`v-for` on arrays of objects)
-
-### `AdminDashboard.js` — Overview & Analytics
-- Dashboard showing total users, jobs, applications
-- Table of all companies (approve/reject)
-- Export statistics as CSV (triggers Celery task)
-
-**Learning points:**
-- Reading computed data from API
-- Triggering background tasks
-- Displaying real-time stats
+### `AdminDashboard.js` — Analytics & Management
+- Analytics cards (total students, companies, drives, placed count, avg/median salary)
+- Company approval/rejection table
+- Placement drive status management
+- User deactivation toggle
 
 ---
 
 ## 🔄 API Endpoints Cheat Sheet
 
-### Authentication
+### Authentication (`/auth`)
 ```
-POST   /api/auth/register      (email, password, role)
-POST   /api/auth/login         (email, password)
-POST   /api/auth/logout
-GET    /api/auth/user          (returns current user)
-```
-
-### Student API
-```
-GET    /api/student/jobs       (list all job postings)
-POST   /api/student/apply      (job_id)
-GET    /api/student/applications  (user's applications)
+POST /auth/register   # Register student or company
+POST /auth/login      # Authenticate user session
+GET  /auth/check      # Check authentication status
+POST /auth/logout     # Terminate user session
 ```
 
-### Company API
+### Admin API (`/admin`)
 ```
-POST   /api/company/job        (title, description, deadline, salary, required_skills)
-GET    /api/company/postings   (user's job postings)
-GET    /api/company/applications (applications to user's jobs)
-POST   /api/company/application/:app_id/accept
-POST   /api/company/application/:app_id/reject
+GET   /admin/admin_dashboard           # Overview analytics
+GET   /admin/search_student?query=...  # Search student profiles
+GET   /admin/search_company?query=...  # Search company profiles
+GET   /admin/view_students             # List all students
+GET   /admin/view_companies            # List all companies
+GET   /admin/all_drives                # List all placement drives
+GET   /admin/drives/:id/applicants     # View drive applicants
+PATCH /admin/company/:id/status        # Approve/reject company
+PATCH /admin/drive/:id/status          # Approve/reject drive
+PATCH /admin/user/:id/deactivate       # Toggle user active status
+GET   /admin/placement                 # Placed student history
+POST  /admin/remind_interview/:id      # Queue interview reminder task
 ```
 
-### Admin API
+### Company API (`/company`)
 ```
-GET    /api/admin/stats        (total users, jobs, applications)
-GET    /api/admin/companies    (all companies, pending approval)
-POST   /api/admin/company/:id/approve
-POST   /api/admin/company/:id/reject
-GET    /api/admin/export-csv   (triggers Celery task, returns job_id)
+GET   /company/dashboard                      # Company metrics & drives
+POST  /company/create_drive                   # Post a new placement drive
+GET   /company/drives/applicants              # Applicants across all drives
+GET   /company/student/:id/info               # View student details
+GET   /company/drives/:id/applicants          # View drive applicants
+PATCH /company/application/:id/status         # Shortlist / select / reject applicant
+PATCH /company/drive/:id/close                # Close placement drive
+GET   /company/:id/drives                     # Company drives list
+GET   /company/:id/info                       # Company profile info
+POST  /company/schedule_interview/:app_id     # Schedule student interview
+POST  /company/export                         # Queue CSV export task
+GET   /company/exported_csv_status/:task_id   # Check CSV task status
+```
+
+### Student API (`/student`)
+```
+GET   /student/student_dashboard              # Student metrics
+GET   /student/view_companies                 # Browse companies
+GET   /student/search_company?query=...       # Search company by name
+GET   /student/all_drives                     # View approved drives
+GET   /student/drives/eligible                # View drives student is eligible for
+GET   /student/student/:id/applications       # View student's applications
+PATCH /student/student/:id/edit-profile       # Update profile & resume
+POST  /student/drive/apply/:drive_id          # Apply to a placement drive
+PATCH /student/applications/:id/withdraw      # Withdraw pending application
+GET   /student/student/:id/placement          # Selected placement history
+GET   /student/:id/resume                     # Download/view resume
+GET   /student/:id/info                       # Profile info
+POST  /student/export                         # Queue CSV export task
+GET   /student/export_csv_status/:task_id     # Check CSV task status
 ```
 
 ---
@@ -356,177 +417,51 @@ GET    /api/admin/export-csv   (triggers Celery task, returns job_id)
 ## ⏰ Background Tasks (Celery)
 
 ### How It Works
-1. Frontend calls API endpoint that needs long-running task
-2. Flask queues a Celery task (returns immediately to user)
-3. Celery worker picks up task and executes asynchronously
-4. Results stored in Redis or database
-5. Frontend can poll for completion status
+1. Frontend calls API endpoint that triggers asynchronous operation
+2. Flask queues a Celery task (returns immediately with a `task_id`)
+3. Celery worker executes the task in background
+4. Progress / results queried via `/export_csv_status/:task_id`
 
 ### Key Tasks
-
-**send_interview_reminder** (`tasks.py:send_interview_reminder`)
-- Scheduled daily at 9 AM
-- Sends email to students with upcoming interviews
-- Example: "Hi John, your interview at TechCorp is on Sept 15 at 2 PM"
-
-**export_placements_csv** (`tasks.py:export_placements_csv`)
-- Triggered when admin clicks "Export Stats"
-- Generates CSV of all placements
-- Saves to `/reports/` folder
-- Email sent to admin with attachment
-
-**schedule_interview** (`tasks.py:schedule_interview`)
-- Triggered when company schedules an interview
-- Sends confirmation to student
-
-### Monitor Tasks
-```bash
-# In Terminal 4, watch worker logs:
-# celery -A tasks.celery_app worker --loglevel=info -P solo
-
-# You'll see:
-# [tasks.send_interview_reminder] ... received
-# [tasks.send_interview_reminder] ... started
-# [tasks.send_interview_reminder] ... succeeded
-```
+* **`export_csv`** (`tasks.py`): Generates CSV exports of applications for students/companies and sends them via email.
+* **`get_reminders`** (`tasks.py`): Sends email reminders to students with interview date, time, and location.
+* **`generate_monthly_reports`** (`tasks.py`): Periodic task (Celery Beat) generating monthly placement analytics HTML reports for approved companies.
 
 ---
 
 ## 🗄️ Database Schema
 
-### Users Table
-```
-id (PK)
-email (UNIQUE)
-password_hash
-role (admin | student | company)
-name
-created_at
-```
-
-### Companies Table
-```
-id (PK)
-user_id (FK → Users)
-name
-description
-website
-status (approved | pending | rejected)
-created_at
-```
-
-### Jobs Table
-```
-id (PK)
-company_id (FK → Companies)
-title
-description
-required_skills
-salary
-deadline
-created_at
-```
-
-### Applications Table
-```
-id (PK)
-student_id (FK → Users)
-job_id (FK → Jobs)
-status (applied | accepted | rejected | interview_scheduled)
-applied_at
-interview_date (nullable)
-interview_time (nullable)
-```
-
-**Why this design?**
-- Separation of concerns: One user can be admin OR student OR company
-- Job postings linked to company via FK
-- Applications track both student and job
-- Status field allows workflow progression (applied → interview → accepted)
+* **User**: `id`, `email`, `password_hash`, `role`, `contact_no`, `is_active`
+* **StudentProfile**: `id`, `name`, `user_id` (FK), `dept`, `dob`, `year`, `cgpa`, `resume_path`
+* **CompanyProfile**: `id`, `name`, `user_id` (FK), `website`, `field`, `location`, `approval_status`
+* **PlacementDrive**: `drive_id`, `company_id` (FK), `jobtitle`, `job_desc`, `open_postings`, `skills`, `branches`, `cgpa_above`, `salary`, `age_cat`, `deadline`, `status`
+* **Application**: `application_id`, `student_id` (FK), `drive_id` (FK), `status`, `appl_date` (Unique constraint on student_id + drive_id)
+* **Interview**: `interview_id`, `company_id` (FK), `student_id` (FK), `application_id` (FK), `interview_date`, `interview_time`, `location`, `status`, `created_at`
 
 ---
-## 🔄 CI/CD Pipeline
-
-This project uses **GitHub Actions** for continuous integration. On every push or pull request to `main`, the pipeline automatically:
-
-1. Installs Python 3.10 and all dependencies from `requirements.txt`
-2. Lints the codebase with **Ruff** (auto-fixing what it can)
-3. Formats code with **Black** — if changes are made, they're auto-committed back to `main`
-4. Runs the **Pytest** test suite (`tests/`), covering authentication and role-based access control
-
-The workflow is defined in `.github/workflows/integration.yml`. Build status for each commit is visible under the repo's **Actions** tab.
 
 ## 🐛 Common Issues & Fixes
 
 ### Issue: "Redis connection refused"
-```
+```text
 Error: ConnectionError: Error connecting to redis://localhost:6379/0
 ```
 **Fix:**
 ```bash
-# Start Redis:
 redis-server  # or: sudo service redis-server start
-
-# Or use Docker:
-docker run -d -p 6379:6379 redis:latest
+# Or Docker: docker run -d -p 6379:6379 redis:latest
 ```
 
 ### Issue: "MailHog not catching emails"
 **Verify:**
-1. MailHog running: `http://localhost:8025` loads
-2. In Flask app, `MAIL_SERVER` is set to `localhost`, `MAIL_PORT=1025`
-3. Check `app.py` for Flask-Mail config:
-   ```python
-   app.config['MAIL_SERVER'] = 'localhost'
-   app.config['MAIL_PORT'] = 1025
-   ```
+1. MailHog running on `localhost:8025`
+2. `MAIL_SERVER = 'localhost'`, `MAIL_PORT = 1025` in `app.py`
 
 ### Issue: "Celery worker not picking up tasks"
 **Debug:**
 1. Ensure Redis is running: `redis-cli ping` → `PONG`
-2. Check Celery worker output for errors
-3. Verify `CELERY_BROKER_URL` in `app.py`: `redis://localhost:6379/0`
-4. Restart worker: `Ctrl+C` and re-run celery command
-
-### Issue: "CORS errors in browser console"
-**Already handled** in `app.py`:
-```python
-from flask_cors import CORS
-CORS(app)
-```
-If persists, ensure Flask is running on the same machine as frontend.
-
-### Issue: "Login works but dashboard is blank"
-**Likely cause:** API call failing silently.
-**Debug:**
-1. Open browser DevTools → Console tab
-2. Look for fetch errors
-3. Check Network tab → see if `/api/student/jobs` returns data
-4. Verify Flask routes in `routes/student.py` are correct
-
-## 📊 Project Metrics
-
-- **Frontend**: 5 Vue components, ~1500 lines of JavaScript
-- **Backend**: 4 route modules, ~500 lines of Flask code
-- **Database**: 4 tables with relationships
-- **Tasks**: 3 Celery tasks (email, CSV export, interview scheduling)
-- **Estimated Learning Time**: 20-30 hours (beginner) | 8-12 hours (intermediate)
-
-### Ideas for Enhancement
-1. **Add interview scheduling UI** (currently backend-only)
-2. **Implement job search filters** (location, salary, skills)
-3. **Add user profile pages** (view/edit resume)
-4. **Notifications dashboard** (in-app notifications, not just email)
-5. **Analytics for companies** (view application trends over time)
-6. **Mobile-responsive design** (currently desktop-focused)
-
-### Testing Setup (Bonus)
-```bash
-pip install pytest pytest-flask
-
-# Run tests:
-pytest tests/
-```
+2. Check Celery worker log output
+3. Restart worker with `PYTHONPATH=.` set
 
 ---
 
@@ -542,17 +477,15 @@ pytest tests/
 
 ## 📝 License
 
-This project is open source and available for educational purposes.
+This project is open-source and available for educational purposes.
 
 ---
 
 ## ✨ Summary
 
-**PlaceMe** is a full-featured placement portal demonstrating modern web development patterns. Use it to:
+**JobBoard – Placement Portal** is a full-featured placement portal demonstrating modern web development patterns:
 - ✅ Learn Vue.js component architecture
-- ✅ Master Flask API design
+- ✅ Master Flask REST API design
 - ✅ Understand async task processing with Celery
-- ✅ Build a complete, deployable SPA
-- ✅ Add to your portfolio with confidence
-
-**Next steps**: Clone the repo, follow the setup, run the app, and start tweaking. Happy coding! 🚀
+- ✅ 90-test automated testing suite with Pytest
+- ✅ CI/CD pipeline automation with GitHub Actions
