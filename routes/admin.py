@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, request
-from decorator import role_required
-from cache import cache
-from models.models import User, StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
+from backend.decorator import role_required
+from backend.cache import cache
+from backend.models.models import User, StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
 import numpy as np
-from tasks import get_reminders
+from backend.tasks import get_reminders
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 

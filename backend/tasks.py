@@ -1,4 +1,4 @@
-from celeryset import celery_app
+from backend.celeryset import celery_app
 from flask_mail import Message
 from flask import render_template_string
 import csv
@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 def export_csv(user_id, user_role):
     try:
         from app import mail, app
-        from models.models import StudentProfile, Application, CompanyProfile, PlacementDrive
+        from backend.models.models import StudentProfile, Application, CompanyProfile, PlacementDrive
 
         with app.app_context():
             export_directory = "exports"
@@ -61,7 +61,7 @@ def export_csv(user_id, user_role):
 def get_reminders(student_id, interview_date, interview_time, company_name, interview_location):
     try:
         from app import mail, app
-        from models.models import StudentProfile
+        from backend.models.models import StudentProfile
 
         with app.app_context():
             student = StudentProfile.query.get(student_id)
@@ -96,7 +96,7 @@ def get_reminders(student_id, interview_date, interview_time, company_name, inte
 @celery_app.task
 def generate_monthly_reports():
     from app import app, mail
-    from models.models import PlacementDrive, CompanyProfile, User, Application, Interview
+    from backend.models.models import PlacementDrive, CompanyProfile, User, Application, Interview
 
     try:
         with app.app_context():

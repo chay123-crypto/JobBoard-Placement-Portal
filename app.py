@@ -1,10 +1,11 @@
 import os
 
-from backend.cache import init_cache
-from backend.celeryset import celery_app
 from flask import Flask, jsonify, render_template
 from flask_login import LoginManager
 from flask_mail import Mail
+
+from backend.cache import init_cache
+from backend.celeryset import celery_app
 from backend.init_db import init
 from backend.models.models import User, db
 
@@ -18,11 +19,7 @@ mail = Mail()
 
 
 def create_app(test_config=None):
-    app = Flask(
-        __name__,
-        template_folder="../templates",
-        static_folder="../static",
-    )
+    app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///portal.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "wxyzab")

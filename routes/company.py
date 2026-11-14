@@ -1,12 +1,12 @@
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from decorator import role_required
-from cache import cache
+from backend.decorator import role_required
+from backend.cache import cache
 from datetime import datetime
-from celeryset import celery_app
-from tasks import export_csv, get_reminders
+from backend.celeryset import celery_app
+from backend.tasks import export_csv, get_reminders
 from celery.result import AsyncResult
-from models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
+from backend.models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
 
 company_bp = Blueprint("company", __name__, url_prefix="/company")
 

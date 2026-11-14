@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from app import create_app
-from models.models import db, User, StudentProfile, CompanyProfile, PlacementDrive, Application
+from backend.models.models import db, User, StudentProfile, CompanyProfile, PlacementDrive, Application
 from datetime import datetime
 
 
@@ -18,7 +18,7 @@ TEST_CONFIG = {
 
 @pytest.fixture(scope="function")
 def app():
-    with patch("celeryset.celery_app"):
+    with patch("backend.celeryset.celery_app"):
         application, _mail = create_app(TEST_CONFIG)
     with application.app_context():
         db.create_all()

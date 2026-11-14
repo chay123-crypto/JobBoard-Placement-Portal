@@ -1,14 +1,14 @@
 from flask import Blueprint, jsonify, request, send_file
 from flask_login import current_user
-from decorator import role_required
+from backend.decorator import role_required
 from datetime import date, datetime
-from models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive
+from backend.models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive
 import os
-from cache import cache
+from backend.cache import cache
 from werkzeug.utils import secure_filename
 from celery.result import AsyncResult
-from celeryset import celery_app
-from tasks import export_csv
+from backend.celeryset import celery_app
+from backend.tasks import export_csv
 
 student_bp = Blueprint("student", __name__, url_prefix="/student")
 upload_folder = "uploads/resumes"
