@@ -152,10 +152,16 @@ pip install -r requirements.txt
 
 ### Step 4: Initialize Database
 ```bash
-python init_db.py
+python -m backend.init_db
 ```
 This creates `portal.db` / `placement.db` with default seed data:
 - Admin user: `admin@placement.in` / `admin@123`
+
+To optionally add demo student and company accounts with an approved sample drive, run:
+```bash
+python -m backend.init_db --seed-demo
+```
+The command prompts you to set passwords for `demo.student@placement.in` and `demo.company@placement.in`. It is safe to rerun and does not add demo accounts during normal app startup. Use demo seeding only in a development/demo database.
 
 ### Step 5: Configure Email Testing (MailHog)
 

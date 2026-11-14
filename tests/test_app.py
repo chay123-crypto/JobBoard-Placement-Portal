@@ -1,9 +1,18 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from app import create_app
-from backend.models.models import db, User, StudentProfile, CompanyProfile, PlacementDrive, Application
 from datetime import datetime
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from app import create_app
+from backend.init_db import DEMO_COMPANY_EMAIL, DEMO_STUDENT_EMAIL, seed_demo
+from backend.models.models import (
+    Application,
+    CompanyProfile,
+    PlacementDrive,
+    StudentProfile,
+    User,
+    db,
+)
 
 TEST_CONFIG = {
     "TESTING": True,
@@ -103,6 +112,27 @@ def _create_drive(app, company_id, deadline="2099-12-31"):
         db.session.add(drive)
         db.session.commit()
         return drive.drive_id
+
+
+def test_demo_seed_is_opt_in_and_idempotent(app):
+    with app.app_context():
+        assert User.query.filter_by(email=DEMO_STUDENT_EMAIL).first() is None
+        assert User.query.filter_by(email=DEMO_COMPANY_EMAIL).first() is None
+
+        seed_demo("StudentDemoPass123!", "CompanyDemoPass123!")
+        seed_demo("StudentDemoPass123!", "CompanyDemoPass123!")
+
+        student_user = User.query.filter_by(email=DEMO_STUDENT_EMAIL).one()
+        company_user = User.query.filter_by(email=DEMO_COMPANY_EMAIL).one()
+        student = StudentProfile.query.filter_by(user_id=student_user.id).one()
+        company = CompanyProfile.query.filter_by(user_id=company_user.id).one()
+        drives = PlacementDrive.query.filter_by(company_id=company.id).all()
+
+        assert student_user.checking_password("StudentDemoPass123!")
+        assert company_user.checking_password("CompanyDemoPass123!")
+        assert company.approval_status == "approved"
+        assert len(drives) == 1
+        assert drives[0].status == "approved"
 
 
 # ─── Auth Routes ──────────────────────────────────────────────────────────────
