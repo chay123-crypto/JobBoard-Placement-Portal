@@ -13,12 +13,12 @@ from routes.auth import auth_bp
 from routes.company import company_bp
 from routes.student import student_bp
 
-manager=LoginManager()
-mail=Mail()
+manager = LoginManager()
+mail = Mail()
 
 
 def create_app(test_config=None):
-    app=Flask(
+    app = Flask(
         __name__,
         template_folder="../templates",
         static_folder="../static",
