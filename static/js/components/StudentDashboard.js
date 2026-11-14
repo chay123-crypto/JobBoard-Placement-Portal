@@ -509,6 +509,7 @@ StudentDashboard={
         </div>
     </div>
 </div>
+</div>
     <ul class="nav nav-tabs mb-4" role="tablist">
     <li class="nav-item" role="presentation">
     <button class="nav-link" :class="{active:activeTab=='overview'}" @click="switchTab('overview')" type="button">Overview</button>
@@ -537,10 +538,10 @@ StudentDashboard={
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">Hello {{studentInfo.name}}! </h5>
-                <div class="row mt-3">
+                <div class="row mt-3 dashboard-overview">
                     <div class="col-md-6">
-                        <h6>Statistics</h6>
-                        <ul class="list-group">
+                        <h6 class="overview-section-title">Statistics</h6>
+                        <ul class="list-group overview-statistics">
                         <li class="list-group-item d-flex justify-content-between m-2">
                         <span>Eligible Drives</span>
                         <span class="badge bg-primary">{{stats.numEligible}}</span>
@@ -559,14 +560,14 @@ StudentDashboard={
                         </li>
                         </ul>
                     </div>
-                <div class="col-md-6">
-                <h5>Quick Actions</h5>
-                <div class="list-group">
-                <button class="list-group-item list-group-item-action" @click="switchTab('eligible')" type="button">View Eligible Drives -></button>
-                <button class="list-group-item list-group-item-action" @click="switchTab('companies')" type="button">View Companies -></button>
-                <button class="list-group-item list-group-item-action" @click="switchTab('drives')" type="button">View All drives -></button>
-                <button class="list-group-item list-group-item-action" @click="switchTab('profile')" type="button">Update/View Profile -></button>
-                <button class="list-group-item list-group-item-action" @click="switchTab('applications')" type="button">Track Applications -></button>
+                <div class="col-md-6 overview-actions-column">
+                <h5 class="overview-section-title">Quick Actions</h5>
+                <div class="list-group overview-actions">
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('eligible')" type="button">View eligible drives</button>
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('companies')" type="button">Explore companies</button>
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('drives')" type="button">Browse all drives</button>
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('profile')" type="button">Update your profile</button>
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('applications')" type="button">Track applications</button>
                  </div>
             </div>
         </div>
@@ -851,7 +852,6 @@ StudentDashboard={
 </div>
 <button class="btn btn-success me-2" @click="updateProfile">Update Details</button>
 <button class="btn btn-secondary me-2" @click="cancelEdit">Cancel Edit</button>
-</div>
 </div>
 </div>
 </div>

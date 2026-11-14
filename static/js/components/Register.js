@@ -68,11 +68,23 @@ const Register={
         }
     },
     template:`
-    <div class="row justify-content-center mt-5">
-    <div class="col-md-10">
-    <div class="card shadow">
-    <div class="card-body p-4 m-2">
-    <h3 class="text-center mb-4">Register</h3>
+    <section class="auth-layout auth-layout--register">
+    <div class="auth-copy">
+      <span class="auth-copy__eyebrow">MAKE YOUR NEXT MOVE</span>
+      <h1>Good things start with a connection.</h1>
+      <p>Create your account to find opportunities, meet employers, and make your next career move.</p>
+      <div class="auth-highlights">
+        <div><span aria-hidden="true">01</span><span>Set up a profile that represents you</span></div>
+        <div><span aria-hidden="true">02</span><span>Find the right path for your next step</span></div>
+        <div><span aria-hidden="true">03</span><span>Keep your placement progress together</span></div>
+      </div>
+    </div>
+    <div class="auth-panel">
+    <div class="card auth-card">
+    <div class="card-body">
+    <span class="auth-form__eyebrow">GET STARTED</span>
+    <h2 class="auth-form__title">Create your account</h2>
+    <p class="auth-form__description">A few details are all you need to get started.</p>
 
     <div v-if="message" class="alert alert-success">{{message}}</div>
     <div v-if="error" class="alert alert-danger">{{error}}</div>
@@ -129,6 +141,7 @@ const Register={
     <label class="form-label">Industry</label>
     <input v-model="field" type="text" class="form-control" placeholder="Enter company industry" required></div>
     </div>
+    </div>
     <div class="d-flex justify-content-center">
     <button @click="handleRegister" class="btn btn-success w-50 mb-3">Register</button>
     </div>
@@ -136,6 +149,6 @@ const Register={
     </div>
     </div>
     </div>
-    </div>`
+    </section>`
     
 }

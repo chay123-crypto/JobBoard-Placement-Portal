@@ -36,24 +36,37 @@ const Login={
     }
   },
   template:`
-  <div class="row justify-content-center mt-5">
-  <div class="col-md-4">
-  <div class="card shadow mt-5">
-   <div class="card-body p-4">
-    <h3 class="card-title text-center mb-4">Placement Portal</h3>
-    <h5 class="text-center text-muted mb-4">Login</h5>
-     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-     <div class="mb-3">
-     <label class="form-label">Email</label>
-     <input v-model="email" type="email" class="form-control" placeholder="enter your email" required></div>
-    <div class="mb-3">
-    <label class="form-label">Password</label>
-     <input v-model="password" type="password" class="form-control" placeholder="enter your password" required></div>
-     <button class="btn btn-primary w-100 mb-3" @click="handlelogin">Login</button>
-     <p class="text-center text-muted mb-0">No account? <a href="#" @click.prevent="goRegister">Register here</a></p>
-     </div>
-     </div>
-     </div>
-  </div>
+  <section class="auth-layout auth-layout--login">
+    <div class="auth-copy">
+      <span class="auth-copy__eyebrow">YOUR NEXT CHAPTER STARTS HERE</span>
+      <h1>Find the work that moves you forward.</h1>
+      <p>Discover opportunities, connect with employers, and keep your placement journey in one place.</p>
+      <div class="auth-highlights">
+        <div><span aria-hidden="true">01</span><span>Explore opportunities matched to your goals</span></div>
+        <div><span aria-hidden="true">02</span><span>Track every application from one dashboard</span></div>
+        <div><span aria-hidden="true">03</span><span>Stay ready for the next step in your career</span></div>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <div class="card auth-card">
+        <div class="card-body">
+          <span class="auth-form__eyebrow">WELCOME BACK</span>
+          <h2 class="auth-form__title">Sign in to your account</h2>
+          <p class="auth-form__description">Pick up where your career journey left off.</p>
+          <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
+          <div class="mb-3">
+            <label class="form-label" for="login-email">Email address</label>
+            <input id="login-email" v-model="email" type="email" class="form-control" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="login-password">Password</label>
+            <input id="login-password" v-model="password" type="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-primary w-100 auth-submit" @click="handlelogin">Sign in</button>
+          <p class="auth-switch">New to Career Portal? <a href="#" @click.prevent="goRegister">Create an account</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
   `
 }

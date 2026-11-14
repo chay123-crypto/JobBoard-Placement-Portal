@@ -501,10 +501,10 @@ CompanyDashboard={
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">Hello {{companyInfo.name}}! </h5>
-                <div class="row mt-3">
+                <div class="row mt-3 dashboard-overview">
                     <div class="col-md-6">
-                        <h6>Statistics</h6>
-                        <ul class="list-group">
+                        <h6 class="overview-section-title">Statistics</h6>
+                        <ul class="list-group overview-statistics">
                         <li class="list-group-item d-flex justify-content-between m-2">
                         <span>Applications</span>
                         <span class="badge bg-primary">{{stats.numApplications}}</span>
@@ -519,11 +519,11 @@ CompanyDashboard={
                         </li>
                         </ul>
                     </div>
-                <div class="col-md-6">
-                <h5>Quick Actions</h5>
-                <div class="list-group">
-                <button class="list-group-item list-group-item-action" @click="switchTab('drives')" type="button">View All drives -></button>
-                <button class="list-group-item list-group-item-action" @click="switchTab('profile')" type="button">View Profile -></button>
+                <div class="col-md-6 overview-actions-column">
+                <h5 class="overview-section-title">Quick Actions</h5>
+                <div class="list-group overview-actions">
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('drives')" type="button">View all drives</button>
+                <button class="list-group-item list-group-item-action overview-action" @click="switchTab('profile')" type="button">View company profile</button>
                  </div>
             </div>
         </div>

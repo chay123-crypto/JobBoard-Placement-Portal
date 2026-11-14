@@ -60,29 +60,34 @@ const app=createApp({
         this.checkSession()
     },
     template:`
-    <div>
-    <div v-if="loading" class="d-flex justify-content-center align-items-center" style="height:100vh">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-     <div v-else>
-     <nav class="navbar navbar-dark bg-dark px-6" v-if="currentUser">
-     <span class="navbar-brand fw-bold">Placement Portal</span>
-     <div class="d-flex align-items-center gap-3">
-     <span class="text-white">{{ currentUser.email }}</span>
-    <span class="badge bg-primary text-capitalize">{{ currentUser.role }}</span>
-    <button class="btn btn-outline-light btn-sm" @click="handlelogout">Logout</button>
+    <div class="portal-shell">
+    <div v-if="loading" class="portal-loading" role="status" aria-label="Loading your portal">
+        <div class="spinner-border text-primary" aria-hidden="true"></div>
     </div>
-    </nav>
-    <div class="container mt-5">
+    <div v-else>
+    <header class="portal-header" v-if="currentUser">
+        <div class="portal-header__inner">
+            <div class="portal-brand">
+                <span class="portal-brand__mark" aria-hidden="true">C</span>
+                <span>Career Portal</span>
+            </div>
+            <div class="portal-user">
+                <div class="portal-user__identity">
+                    <span class="portal-user__email">{{ currentUser.email }}</span>
+                    <span class="portal-user__role">{{ currentUser.role }}</span>
+                </div>
+                <button class="btn btn-outline-light btn-sm portal-logout" @click="handlelogout">Sign out</button>
+            </div>
+        </div>
+    </header>
+    <main class="portal-main">
     <Login v-if="currentView=='login'" @login-success="handlelogin" @go-register="currentView='register'"></Login>
-    <Register v-if="currentView === 'register'"@go-login="currentView = 'login'"/>
+    <Register v-if="currentView === 'register'" @go-login="currentView = 'login'"/>
     <AdminDashboard v-if="currentView==='adminDashboard'"/>
     <CompanyDashboard v-if="currentView==='companyDashboard'"/>
     <StudentDashboard v-if="currentView==='studentDashboard'"/>
-     </div>
-     </div>
+    </main>
+    </div>
     </div>
 `
 })
