@@ -1,8 +1,14 @@
 import os
 
+from flask import request
 from flask_caching import Cache
+from flask_login import current_user
 
 cache = Cache()
+
+
+def user_cache_key():
+    return f"{request.endpoint}:{request.full_path}:{current_user.get_id()}"
 
 
 def init_cache(app):

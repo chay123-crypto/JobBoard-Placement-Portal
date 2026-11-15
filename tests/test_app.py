@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app import create_app
+from backend.cache import cache
 from backend.init_db import (
     DEMO_COMPANY_EMAIL,
     DEMO_PASSWORD,
@@ -25,7 +26,10 @@ TEST_CONFIG = {
     "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     "SECRET_KEY": "test-secret",
-    "CACHE_TYPE": "NullCache",
+    "ADMIN_PASSWORD": "test-admin-password",
+    "CACHE_TYPE": "SimpleCache",
+    "RATELIMIT_STORAGE_URI": "memory://",
+    "RATELIMIT_ENABLED": False,
     "MAIL_SUPPRESS_SEND": True,
     "WTF_CSRF_ENABLED": False,
 }
@@ -37,7 +41,8 @@ def app():
         application, _mail = create_app(TEST_CONFIG)
     with application.app_context():
         db.create_all()
-        yield application
+    yield application
+    with application.app_context():
         db.session.remove()
         db.drop_all()
 
@@ -88,7 +93,7 @@ def _login(client, email, password="pass1234"):
 
 
 def _login_admin(client):
-    return _login(client, "admin@placement.in", "admin@123")
+    return _login(client, "admin@placement.in", TEST_CONFIG["ADMIN_PASSWORD"])
 
 
 def _approve_company(app, user_email):
@@ -169,6 +174,10 @@ class TestRegister:
         assert response.status_code == 400
         assert "error" in response.get_json()
 
+    def test_register_requires_json_object(self, client):
+        assert client.post("/auth/register").status_code == 400
+        assert client.post("/auth/register", data="not json").status_code == 400
+
     def test_register_invalid_role(self, client):
         response = client.post("/auth/register", json={"role": "superuser", "email": "x@x.com", "password": "abc"})
         assert response.status_code == 400
@@ -185,7 +194,7 @@ class TestRegister:
         assert response.status_code == 409
         assert "Contact number already registered" in response.get_json()["error"]
 
-    def test_register_student_bad_dob(self, client):
+    def test_register_student_bad_dob(self, client, app):
         response = client.post(
             "/auth/register",
             json={
@@ -201,6 +210,8 @@ class TestRegister:
             },
         )
         assert response.status_code == 400
+        with app.app_context():
+            assert User.query.filter_by(email="bad@x.com").first() is None
 
 
 class TestLogin:
@@ -220,6 +231,30 @@ class TestLogin:
     def test_login_nonexistent_user(self, client):
         response = _login(client, "ghost@x.com")
         assert response.status_code == 401
+
+    def test_login_requires_json_object(self, client):
+        assert client.post("/auth/login").status_code == 400
+        assert client.post("/auth/login", data="not json").status_code == 400
+
+    def test_login_is_rate_limited(self):
+        limited_app, _mail = create_app({**TEST_CONFIG, "RATELIMIT_ENABLED": True})
+        client = limited_app.test_client()
+        for _ in range(5):
+            assert _login(client, "missing@example.com").status_code == 401
+        assert _login(client, "missing@example.com").status_code == 429
+
+
+def test_create_app_requires_secret_key(monkeypatch):
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY must be configured"):
+        create_app({"ADMIN_PASSWORD": "test-admin-password"})
+
+
+def test_create_app_requires_admin_password(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    with pytest.raises(RuntimeError, match="ADMIN_PASSWORD must be configured"):
+        create_app({"SECRET_KEY": "test-secret"})
 
 
 class TestCheckAuth:
@@ -546,6 +581,43 @@ class TestCompanyCreateDrive:
             },
         )
         assert response.status_code == 400
+        assert response.get_json()["error"] == "Deadline must be in the future"
+
+    def test_create_drive_invalid_deadline_format(self, client, app):
+        _register_company(client)
+        _approve_company(app, "co@test.com")
+        _login(client, "co@test.com")
+        response = client.post(
+            "/company/create_drive",
+            json={
+                "jobtitle": "SDE",
+                "branches": "CSE",
+                "cgpa_above": 7.0,
+                "deadline": "not-a-date",
+                "open_postings": 5,
+                "salary": 500000,
+            },
+        )
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "Deadline must use YYYY-MM-DD format"
+
+    def test_create_drive_accepts_zero_values(self, client, app):
+        _register_company(client)
+        _approve_company(app, "co@test.com")
+        _login(client, "co@test.com")
+        response = client.post(
+            "/company/create_drive",
+            json={
+                "jobtitle": "SDE",
+                "branches": "CSE",
+                "cgpa_above": 0,
+                "deadline": "2099-12-31",
+                "open_postings": 0,
+                "salary": 0,
+                "age_cat": 30,
+            },
+        )
+        assert response.status_code == 200
 
     def test_create_drive_not_approved(self, client):
         _register_company(client)
@@ -582,7 +654,7 @@ class TestCompanyGetStudentInfo:
         response = client.get("/company/student/9999/info")
         assert response.status_code == 404
 
-    def test_get_student_info(self, client, app):
+    def test_get_student_info_requires_company_application(self, client, app):
         _register_student(client)
         _register_company(client)
         _approve_company(app, "co@test.com")
@@ -591,8 +663,57 @@ class TestCompanyGetStudentInfo:
             sid = student.id
         _login(client, "co@test.com")
         response = client.get(f"/company/student/{sid}/info")
+        assert response.status_code == 403
+
+    def test_get_student_info_for_applicant(self, client, app):
+        _register_student(client)
+        _register_company(client)
+        company_id = _approve_company(app, "co@test.com")
+        drive_id = _create_drive(app, company_id)
+        with app.app_context():
+            student = StudentProfile.query.filter_by(name="Test Student").first()
+            sid = student.id
+            db.session.add(Application(student_id=sid, drive_id=drive_id))
+            db.session.commit()
+        _login(client, "co@test.com")
+        response = client.get(f"/company/student/{sid}/info")
         assert response.status_code == 200
         assert "student" in response.get_json()
+
+
+def test_cached_student_dashboards_are_isolated_by_user(app):
+    cache.clear()
+
+    client_one = app.test_client()
+    client_two = app.test_client()
+    _register_student(client_one, "one@test.com", "1111111111")
+    _register_student(client_two, "two@test.com", "3333333333")
+    _register_company(client_one)
+    company_id = _approve_company(app, "co@test.com")
+    drive_id = _create_drive(app, company_id)
+
+    with app.app_context():
+        first_student = StudentProfile.query.join(User).filter(User.email == "one@test.com").one()
+        second_student = StudentProfile.query.join(User).filter(User.email == "two@test.com").one()
+        assert first_student.id != second_student.id
+        db.session.add(Application(student_id=second_student.id, drive_id=drive_id))
+        db.session.commit()
+
+    first_login = _login(client_one, "one@test.com").get_json()
+    second_login = _login(client_two, "two@test.com").get_json()
+    assert first_login["id"] != second_login["id"]
+    with client_one.session_transaction() as session:
+        assert session["_user_id"] == str(first_login["id"])
+    with client_two.session_transaction() as session:
+        assert session["_user_id"] == str(second_login["id"])
+    first_dashboard = client_one.get("/student/student_dashboard")
+    second_dashboard = client_two.get("/student/student_dashboard")
+
+    assert first_dashboard.status_code == 200
+    assert first_dashboard.get_json()["num_applications"] == 0
+    assert second_dashboard.status_code == 200
+    assert second_dashboard.get_json()["num_applications"] == 1
+    assert app.test_client().get("/student/student_dashboard").status_code == 401
 
 
 class TestCompanyDriveApplicants:

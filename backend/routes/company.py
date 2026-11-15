@@ -1,19 +1,28 @@
+from datetime import datetime
+
+from celery.result import AsyncResult
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from backend.decorator import role_required
-from backend.cache import cache
-from datetime import datetime
+
+from backend.cache import cache, user_cache_key
 from backend.celeryset import celery_app
+from backend.decorator import role_required
+from backend.models.models import (
+    Application,
+    CompanyProfile,
+    Interview,
+    PlacementDrive,
+    StudentProfile,
+    db,
+)
 from backend.tasks import export_csv, get_reminders
-from celery.result import AsyncResult
-from backend.models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
 
 company_bp = Blueprint("company", __name__, url_prefix="/company")
 
 
 @company_bp.route("/dashboard", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("company")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def company_dashboard():
     company = CompanyProfile.query.filter_by(user_id=current_user.id).first()
     if not company:
@@ -37,17 +46,21 @@ def apply_drive():
         return jsonify({"error": "company not found"}), 404
     elif company.approval_status != "approved":
         return jsonify({"error": "company not yet approved by the admin"}), 403
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "A JSON request body is required"}), 400
+
     required = ["jobtitle", "branches", "cgpa_above", "deadline", "open_postings", "salary"]
     for field in required:
-        if not data.get(field):
+        value = data.get(field)
+        if value is None or (isinstance(value, str) and not value.strip()):
             return jsonify({"error": f"required fields missing. check {field}"}), 400
     try:
         deadline = datetime.strptime(data.get("deadline"), "%Y-%m-%d")
-        if deadline < datetime.now():
-            return jsonify({"error": "Deadline must be in future"}), 400
-    except ValueError:
-        return jsonify({"error": "Deadline cannot be in the past"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Deadline must use YYYY-MM-DD format"}), 400
+    if deadline < datetime.now():
+        return jsonify({"error": "Deadline must be in the future"}), 400
     drive = PlacementDrive(company_id=company.id, branches=data.get("branches"), status="pending", deadline=deadline, skills=data.get("skills"), jobtitle=data.get("jobtitle"), job_desc=data.get("job_desc"), cgpa_above=data.get("cgpa_above"), open_postings=data.get("open_postings"), age_cat=data.get("age_cat", ""), salary=data.get("salary"))
     db.session.add(drive)
     db.session.commit()
@@ -56,8 +69,8 @@ def apply_drive():
 
 
 @company_bp.route("/drives/applicants", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("company")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def get_all_applicants():
     company = CompanyProfile.query.filter_by(user_id=current_user.id).first()
     if not company:
@@ -71,18 +84,31 @@ def get_all_applicants():
 
 
 @company_bp.route("/student/<int:student_id>/info", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("company")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def get_student(student_id):
     student = StudentProfile.query.filter_by(id=student_id).first()
     if not student:
         return jsonify({"error": "Student not found"}), 404
+    company = CompanyProfile.query.filter_by(user_id=current_user.id).first()
+    if not company:
+        return jsonify({"error": "Company profile not found"}), 404
+    application = (
+        Application.query.join(PlacementDrive)
+        .filter(
+            Application.student_id == student.id,
+            PlacementDrive.company_id == company.id,
+        )
+        .first()
+    )
+    if not application:
+        return jsonify({"error": "Student has not applied to your company"}), 403
     return jsonify({"student": {"id": student.id, "user_id": student.user_id, "name": student.name, "dept": student.dept, "cgpa": student.cgpa, "year": student.year, "dob": student.dob.strftime("%d-%m-%Y"), "resume_path": student.resume_path}}), 200
 
 
 @company_bp.route("/drives/<int:drive_id>/applicants", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("company")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def get_applicants(drive_id):
     company = CompanyProfile.query.filter_by(user_id=current_user.id).first()
     if not company:
@@ -125,8 +151,8 @@ def export():
 
 
 @company_bp.route("/<int:company_id>/drives", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("company")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def see_drives(company_id):
     if not company_id == current_user.id:
         return jsonify({"error": "company not found"}), 404

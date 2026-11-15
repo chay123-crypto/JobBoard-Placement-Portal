@@ -2,26 +2,13 @@
 
 A full-stack placement portal built with **Vue.js + Flask**. It includes role-based dashboards, placement-drive management, student applications, resume uploads, resume-to-drive similarity scores, background tasks, and automated tests.
 
-**Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture | CI/CD implementation basics | Comprehensive Flask testing
-
 Live demo: https://jobboard-placement-portal.onrender.com/
 
 ---
 
-## 🎯 Learning Objectives
+## 🎯 Project Overview
 
-By working through this project, I mastered:
-
-- **Vue.js Fundamentals**: Component-driven UI, lifecycle hooks, conditional rendering, and list management
-- **SPA Architecture**: Client-side routing, state management across components, API communication patterns
-- **Backend Integration**: Flask JSON APIs, session authentication, and role-based access control (RBAC)
-- **Async Operations**: Promises, async/await, handling API responses and errors
-- **Application Services**: In-process caching (`Flask-Caching`), background task queues (`Celery`), and email notifications (`Flask-Mail`)
-- **Database Design**: SQLAlchemy ORM, model relationships, and indexed foreign keys
-- **Resume Matching**: PDF text extraction and FastEmbed sentence embeddings using `all-MiniLM-L6-v2`
-- **Testing**: 104 unit and integration tests using `pytest`, in-memory SQLite, and mocked background tasks
-- **CI/CD Pipeline**: GitHub Actions workflows for automated linting (`Ruff`), auto-formatting (`Black`), and running test suites
-- **Full-Stack Debugging**: Browser DevTools + Flask logging to trace issues end-to-end
+The frontend provides separate student, company, and administrator workflows. The Flask API handles session authentication, access control, placement data, resume processing, and background exports and notifications. Pytest covers API behavior, matching, caching, and background tasks.
 
 ---
 
@@ -31,13 +18,14 @@ By working through this project, I mastered:
 |---------|-----------|-----------------|
 | **Multi-role Dashboard** | Vue.js Components | Conditional UI rendering, component reusability |
 | **Role-Based Access** | Flask decorators + Auth | Session management, authorization patterns |
+| **Login Protection** | Flask-Limiter | Five login attempts per minute per client IP |
 | **Placement Drives** | Vue forms + REST API | Drive creation, approval, eligibility, and applications |
 | **Application Tracking** | Dynamic tables, Vue state | List rendering, filtering, real-time updates |
 | **Resume Matching** | pypdf + FastEmbed | PDF text extraction and semantic similarity estimates |
 | **Email Notifications** | Celery + Flask-Mail | Async task processing, scheduled jobs |
 | **CSV Export** | Celery background tasks | Long-running operations, progress tracking |
 | **Caching Layer** | Flask-Caching | Performance optimization, cache invalidation |
-| **Automated Testing** | Pytest | 104 tests covering API routes and resume matching |
+| **Automated Testing** | Pytest | 116 tests covering API routes, caching, matching, and background tasks |
 | **CI/CD Pipeline** | GitHub Actions | Automated linting, code formatting, and test execution on push/PR |
 
 ---
@@ -47,7 +35,7 @@ By working through this project, I mastered:
 | Layer | Technologies |
 |-------|--------------|
 | **Frontend** | Vue.js, JavaScript (ES6+), HTML5, Bootstrap 5 |
-| **Backend** | Flask, Flask-SQLAlchemy, Flask-Login, Flask-Mail, Flask-Caching |
+| **Backend** | Flask, Flask-SQLAlchemy, Flask-Login, Flask-Mail, Flask-Caching, Flask-Limiter |
 | **Database** | SQLite |
 | **Resume parsing and matching** | pypdf, FastEmbed, all-MiniLM-L6-v2 |
 | **Task Queue** | Celery + Redis message broker |
@@ -72,6 +60,7 @@ JobBoard-Placement-Portal/
 │   ├── decorator.py
 │   ├── init_db.py
 │   ├── matching.py
+│   ├── rate_limit.py
 │   ├── resume_parser.py
 │   ├── tasks.py
 │   ├── models/models.py
@@ -88,9 +77,11 @@ JobBoard-Placement-Portal/
 │           ├── main.js
 │           └── components/
 ├── tests/
+│   ├── conftest.py
 │   ├── test_app.py
 │   ├── test_cache.py
-│   └── test_matching.py
+│   ├── test_matching.py
+│   └── test_tasks.py
 ├── Dockerfile
 ├── requirements.txt
 ├── .github/
@@ -141,12 +132,28 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 4: Initialize Database
+### Step 4: Configure Required Secrets
+The application does not provide default signing keys or admin credentials. Set both variables before initializing or starting the app.
+
+**Windows PowerShell:**
+```powershell
+$env:SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
+$env:ADMIN_PASSWORD = Read-Host "Choose the initial admin password"
+```
+
+**macOS/Linux:**
+```bash
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+export ADMIN_PASSWORD='choose-a-strong-unique-password'
+```
+
+Keep these values private and configure them as environment variables in Render or Docker; never commit them.
+
+### Step 5: Initialize Database
 ```bash
 python -m backend.init_db
 ```
-The app initializes `portal.db` and creates a default admin account:
-- Admin user: `admin@placement.in` / `admin@123`
+The app initializes `portal.db` and creates the admin account `admin@placement.in` using `ADMIN_PASSWORD`. Changing this environment variable updates the configured admin password at startup.
 
 To optionally add demo student and company accounts with an approved sample drive, run:
 ```bash
@@ -183,25 +190,26 @@ redis-cli ping  # Should print "PONG"
 
 ## Running the Application
 
-Start the Flask app:
+With `SECRET_KEY` and `ADMIN_PASSWORD` set in the current shell, start the Flask app:
 ```bash
 python app.py
 ```
 Then open `http://localhost:5000`.
 
-The web app uses in-process caching by default and does not require Redis just to start. Redis is required for Celery background jobs. Email delivery requires an SMTP server; MailHog can be used for local testing.
+The web app uses in-process caching by default and does not require Redis just to start. Redis is required for Celery background jobs; when `REDIS_URL` is configured, it is also used for shared login rate-limit storage. Otherwise, rate limits use in-process memory. Email delivery requires an SMTP server; MailHog can be used for local testing.
 
 ---
 
 ## Testing
 
-The suite currently contains **104 tests** across the application, caching, and resume matching.
+The suite currently contains **116 tests** across the application, caching, resume matching, and background tasks.
 
 ### Test Coverage Highlights
-* **Auth Tests**: Registration (student, company, missing role, invalid role, duplicate email, duplicate contact, invalid DOB), Login (success, wrong password, non-existent user), Check Auth, Logout.
+* **Auth Tests**: Registration validation, Login (success, wrong password, non-existent user, rate limiting), Check Auth, Logout.
 * **Admin Tests**: Dashboard metrics (unauthenticated, non-admin, admin success), Search Student/Company (found, not found, forbidden), View Students/Companies, All Drives, Applicants per Drive, Approve/Reject Company & Drive (404, invalid action, success), User Activation/Deactivation, Placement Stats.
-* **Company Tests**: Dashboard (unauthenticated, not approved, approved), Create Drive (success, missing fields, past deadline, forbidden), All Applicants, Student Info, Drive Applicants, Update Application Status (shortlisted, selected, rejected, invalid action), Close Drive, Company Info, See Drives, Export CSV, CSV Task Status, Schedule Interview.
+* **Company Tests**: Dashboard (unauthenticated, not approved, approved), Create Drive (success, validation, zero-valued fields), Student Info (application authorization), Drive Applicants, Update Application Status, Close Drive, Company Info, See Drives, Export CSV, CSV Task Status, Schedule Interview.
 * **Student Tests**: Dashboard, View Companies, All Drives, Applications (forbidden, success), Apply Drive (success, duplicate application, low CGPA, past deadline), Application Withdrawal (success, already selected, 404), Eligible Drives, Placement History, Student Info, Resume Retrieval, Export CSV, CSV Task Status.
+* **Background Tasks**: Student CSV export, interview reminders, and monthly reports.
 
 ### Running Tests
 ```bash
@@ -247,7 +255,7 @@ The app currently stores data in SQLite and uploaded resumes on the service file
 3. **Browse drives** posted by companies
 4. **Apply** to a drive
 5. **Upload a PDF resume** to see extracted fields and resume-to-drive similarity estimates
-6. **Log in as Admin** (`admin@placement.in` / `admin@123`) to approve companies & view stats
+6. **Log in as Admin** (`admin@placement.in` and the password configured with `ADMIN_PASSWORD`) to approve companies and view stats
 7. **Log in as Company** to review applications and schedule interviews
 
 ---
@@ -437,5 +445,5 @@ This project is open-source and available for educational purposes.
 - ✅ Master Flask REST API design
 - ✅ Understand async task processing with Celery
 - ✅ Resume-to-drive semantic similarity scoring
-- ✅ 104-test automated testing suite with Pytest
+- ✅ 116-test automated testing suite with Pytest
 - ✅ CI/CD pipeline automation with GitHub Actions

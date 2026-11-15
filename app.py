@@ -8,7 +8,7 @@ from backend.cache import init_cache
 from backend.celeryset import celery_app
 from backend.init_db import init
 from backend.models.models import User, db
-
+from backend.rate_limit import limiter
 from backend.routes.admin import admin_bp
 from backend.routes.auth import auth_bp
 from backend.routes.company import company_bp
@@ -19,6 +19,12 @@ mail = Mail()
 
 
 def create_app(test_config=None):
+    secret_key = os.environ.get("SECRET_KEY")
+    if not secret_key and test_config:
+        secret_key = test_config.get("SECRET_KEY")
+    if not secret_key:
+        raise RuntimeError("SECRET_KEY must be configured in the environment")
+
     app = Flask(
         __name__,
         template_folder="frontend/templates",
@@ -26,7 +32,12 @@ def create_app(test_config=None):
     )
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///portal.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "wxyzab")
+    app.config["SECRET_KEY"] = secret_key
+    app.config["ADMIN_PASSWORD"] = os.environ.get("ADMIN_PASSWORD")
+    app.config["RATELIMIT_STORAGE_URI"] = os.environ.get(
+        "RATELIMIT_STORAGE_URI",
+        os.environ.get("REDIS_URL", "memory://"),
+    )
     app.config["MAIL_SERVER"] = "localhost"
     app.config["MAIL_PORT"] = 1025
     app.config["MAIL_USE_TLS"] = False
@@ -38,6 +49,7 @@ def create_app(test_config=None):
         app.config.update(test_config)
 
     init_cache(app)
+    limiter.init_app(app)
 
     db.init_app(app)
     with app.app_context():
@@ -75,4 +87,4 @@ def create_app(test_config=None):
 
 app, mail = create_app()
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

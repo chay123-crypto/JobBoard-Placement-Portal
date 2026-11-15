@@ -1,6 +1,8 @@
 import argparse
 from datetime import date, datetime
 
+from flask import current_app
+
 from backend.models.models import (
     CompanyProfile,
     PlacementDrive,
@@ -17,16 +19,21 @@ DEMO_PASSWORD = "DemoAccess123!"
 
 
 def init():
+    admin_password = current_app.config.get("ADMIN_PASSWORD")
+    if not admin_password:
+        raise RuntimeError("ADMIN_PASSWORD must be configured to initialize the admin account")
+
     db.create_all()
     admin = User.query.filter_by(role="admin").first()
     if not admin:
         new_admin = User(email="admin@placement.in", role="admin", contact_no="0000000000")
-        new_admin.set_password("admin@123")
+        new_admin.set_password(admin_password)
         db.session.add(new_admin)
         db.session.commit()
         print("admin created successfully")
     else:
-        print("admin exist already")
+        admin.set_password(admin_password)
+        db.session.commit()
 
 
 def _get_or_create_demo_user(email, role, contact_no, password):

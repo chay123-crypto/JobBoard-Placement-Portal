@@ -2,18 +2,42 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.models.models import CompanyProfile, StudentProfile, User, db
+from backend.rate_limit import limiter
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    inputs = request.get_json()
+    inputs = request.get_json(silent=True)
+    if not isinstance(inputs, dict):
+        return jsonify({"error": "A JSON request body is required"}), 400
+
     role = inputs.get("role")
     if role not in ("student", "company"):
         return jsonify({"error": "Invalid role. Must be student or company."}), 400
+
+    if role == "student":
+        required_fields = ("email", "contact_no", "password", "name", "dept", "dob", "year", "cgpa")
+    else:
+        required_fields = ("email", "contact_no", "password", "name", "website", "location", "field")
+    missing_fields = [
+        field
+        for field in required_fields
+        if inputs.get(field) is None or (isinstance(inputs.get(field), str) and not inputs[field].strip())
+    ]
+    if missing_fields:
+        return jsonify({"error": f"Required fields missing: {', '.join(missing_fields)}"}), 400
+
+    dob = None
+    if role == "student":
+        try:
+            dob = datetime.strptime(inputs.get("dob"), "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid DOB format"}), 400
 
     email = inputs.get("email")
     if User.query.filter_by(email=email).first():
@@ -26,26 +50,30 @@ def register():
     acct = User(role=role, email=email, contact_no=phone)
     acct.set_password(inputs.get("password"))
     db.session.add(acct)
-    db.session.flush()
 
     if role == "student":
-        try:
-            dob = datetime.strptime(inputs.get("dob"), "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid DOB format"}), 400
-        profile = StudentProfile(user_id=acct.id, name=inputs.get("name"), dept=inputs.get("dept"), dob=dob, year=inputs.get("year"), cgpa=inputs.get("cgpa"), resume_path="")
+        profile = StudentProfile(user=acct, name=inputs.get("name"), dept=inputs.get("dept"), dob=dob, year=inputs.get("year"), cgpa=inputs.get("cgpa"), resume_path="")
     else:
-        profile = CompanyProfile(user_id=acct.id, name=inputs.get("name"), website=inputs.get("website"), location=inputs.get("location"), field=inputs.get("field"))
-    db.session.add(profile)
-    db.session.commit()
+        profile = CompanyProfile(user=acct, name=inputs.get("name"), website=inputs.get("website"), location=inputs.get("location"), field=inputs.get("field"))
+    try:
+        db.session.add(profile)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
     return jsonify({"message": f"{role.upper()} registered successfully"}), 200
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("5 per minute")
 def login():
-    inputs = request.get_json()
+    inputs = request.get_json(silent=True)
+    if not isinstance(inputs, dict):
+        return jsonify({"error": "A JSON request body is required"}), 400
     email = inputs.get("email")
     password = inputs.get("password")
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
 
     user = User.query.filter_by(email=email).first()
 

@@ -1,16 +1,25 @@
-from flask import Blueprint, jsonify, request
-from backend.decorator import role_required
-from backend.cache import cache
-from backend.models.models import User, StudentProfile, CompanyProfile, db, Application, PlacementDrive, Interview
 import numpy as np
+from flask import Blueprint, jsonify, request
+
+from backend.cache import cache, user_cache_key
+from backend.decorator import role_required
+from backend.models.models import (
+    Application,
+    CompanyProfile,
+    Interview,
+    PlacementDrive,
+    StudentProfile,
+    User,
+    db,
+)
 from backend.tasks import get_reminders
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 @admin_bp.route("/admin_dashboard", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("admin")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def admin_dashboard():
     num_students = StudentProfile.query.count()
     num_placedstudents = db.session.query(Application.student_id).filter_by(status="selected").distinct().count()
@@ -84,8 +93,8 @@ def search_companies():
 
 
 @admin_bp.route("/view_students", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("admin")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def view_students():
     students = StudentProfile.query.all()
     lis = [{"student_id": s.user_id, "name": s.name, "dept": s.dept, "year": s.year, "cgpa": s.cgpa, "is_active": s.user.is_active} for s in students]
@@ -93,8 +102,8 @@ def view_students():
 
 
 @admin_bp.route("/view_companies", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("admin")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def view_companies():
     companies = CompanyProfile.query.all()
     lis = [{"company_id": c.id, "user_id": c.user_id, "name": c.name, "website": c.website, "approval_status": c.approval_status, "is_active": c.user.is_active, "field": c.field, "location": c.location} for c in companies]
@@ -102,8 +111,8 @@ def view_companies():
 
 
 @admin_bp.route("/all_drives", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("admin")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def all_drives():
     drives = PlacementDrive.query.all()
     company_ids = [d.company_id for d in drives]
@@ -184,8 +193,8 @@ def deactivate_user(user_id):
 
 
 @admin_bp.route("/placement", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("admin")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def see_placement():
     history = Application.query.filter_by(status="selected").all()
     if not history:

@@ -8,7 +8,7 @@ from flask_login import current_user
 from pypdf.errors import PdfReadError, PdfStreamError
 from sqlalchemy.exc import SQLAlchemyError
 
-from backend.cache import cache
+from backend.cache import cache, user_cache_key
 from backend.celeryset import celery_app
 from backend.decorator import role_required
 from backend.matching import ResumeMatchingError, compute_match_scores, match_category
@@ -34,8 +34,8 @@ MAX_RESUME_SIZE = 5_000_000
 
 
 @student_bp.route("/student_dashboard", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def student_dashboard():
     student = StudentProfile.query.filter_by(user_id=current_user.id).first()
     if not student:
@@ -47,8 +47,8 @@ def student_dashboard():
 
 
 @student_bp.route("/view_companies", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def view_companies():
     companies = CompanyProfile.query.all()
     lis = [{"company_id": c.id, "name": c.name, "website": c.website, "approval_status": c.approval_status, "field": c.field, "location": c.location} for c in companies]
@@ -69,8 +69,8 @@ def search_companies():
 
 
 @student_bp.route("/all_drives", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def all_drives():
     drives = PlacementDrive.query.filter_by(status="approved").all()
     company_ids = [d.company_id for d in drives]
@@ -241,8 +241,8 @@ def apply_drive(drive_id):
 
 
 @student_bp.route("/student/<int:student_id>/placement", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def see_placement(student_id):
     if current_user.id != student_id:
         return jsonify({"error": "Unauthorized access"}), 400
@@ -329,8 +329,8 @@ def eligible():
 
 
 @student_bp.route("/<int:student_id>/info", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
+@cache.cached(timeout=60, key_prefix=user_cache_key)
 def get_student(student_id):
     if current_user.id != student_id:
         return jsonify({"error": "Unauthorized access"}), 400
