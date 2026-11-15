@@ -76,13 +76,7 @@ def compute_match_scores(student, drives, session):
 
     skills = extract_skills(resume_text, load_vocab(session))
     texts = [student_text(skills, student.dept)]
-    texts.extend(
-        job_text(drive.jobtitle, drive.skills, drive.job_desc)
-        for drive in drives
-    )
+    texts.extend(job_text(drive.jobtitle, drive.skills, drive.job_desc) for drive in drives)
     vectors = embed(texts)
     student_vector = vectors[0]
-    return {
-        drive.drive_id: similarity_score(student_vector, job_vector)
-        for drive, job_vector in zip(drives, vectors[1:])
-    }
+    return {drive.drive_id: similarity_score(student_vector, job_vector) for drive, job_vector in zip(drives, vectors[1:])}
