@@ -379,6 +379,13 @@ StudentDashboard={
                 credentials:'include',
                 body:form
             })
+            const contentType=res.headers.get('content-type')||''
+            if(!contentType.toLowerCase().includes('application/json')){
+                this.error=res.ok
+                    ? 'The server returned an unexpected response.'
+                    : `Profile update failed (HTTP ${res.status}). Check the Render service logs.`
+                return
+            }
             const data=await res.json()
             if(res.ok){
                 this.success="Profile updated successfully"
