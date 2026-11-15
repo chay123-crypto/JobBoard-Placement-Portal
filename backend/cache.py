@@ -13,11 +13,7 @@ def init_cache(app):
         "CACHE_KEY_PREFIX": "placement_",
     }
     if cache_type.lower() in {"redis", "rediscache"}:
-        redis_url = (
-            app.config.get("CACHE_REDIS_URL")
-            or app.config.get("REDIS_URL")
-            or os.environ.get("REDIS_URL")
-        )
+        redis_url = app.config.get("CACHE_REDIS_URL") or app.config.get("REDIS_URL") or os.environ.get("REDIS_URL")
         if not redis_url:
             raise RuntimeError("Redis caching requires CACHE_REDIS_URL or REDIS_URL")
         config["CACHE_REDIS_URL"] = redis_url
