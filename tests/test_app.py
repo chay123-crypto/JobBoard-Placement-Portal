@@ -843,6 +843,26 @@ class TestStudentApplications:
         assert response.status_code == 200
         assert "applications" in response.get_json()
 
+    def test_applications_include_match_score(self, client, app):
+        _register_student(client)
+        _register_company(client)
+        company_id = _approve_company(app, "co@test.com")
+        drive_id = _create_drive(app, company_id)
+        with app.app_context():
+            student = StudentProfile.query.filter_by(name="Test Student").one()
+            db.session.add(Application(student_id=student.id, drive_id=drive_id))
+            db.session.commit()
+            user_id = student.user_id
+
+        _login(client, "stu@test.com")
+        with patch("routes.student.compute_match_scores", return_value={drive_id: 82.5}):
+            response = client.get(f"/student/student/{user_id}/applications")
+
+        assert response.status_code == 200
+        application = response.get_json()["applications"][0]
+        assert application["match_score"] == 82.5
+        assert application["match_category"] == "Great"
+
 
 class TestStudentApplyDrive:
     def test_apply_drive_not_found(self, client):
@@ -941,11 +961,14 @@ class TestStudentEligibleDrives:
         _register_student(client)
         _register_company(client)
         cid = _approve_company(app, "co@test.com")
-        _create_drive(app, cid)
+        drive_id = _create_drive(app, cid)
         _login(client, "stu@test.com")
-        response = client.get("/student/drives/eligible")
+        with patch("routes.student.compute_match_scores", return_value={drive_id: 50.0}):
+            response = client.get("/student/drives/eligible")
         assert response.status_code == 200
-        assert "eligible_drives" in response.get_json()
+        drive = response.get_json()["eligible_drives"][0]
+        assert drive["match_score"] == 50.0
+        assert drive["match_category"] == "Good"
 
     def test_eligible_drives_student_not_found(self, client, app):
         _register_student(client)
@@ -957,6 +980,20 @@ class TestStudentEligibleDrives:
         _login(client, "stu@test.com")
         response = client.get("/student/drives/eligible")
         assert response.status_code == 404
+
+    def test_eligible_drives_without_pdf_returns_no_match_score(self, client, app):
+        _register_student(client)
+        _register_company(client)
+        company_id = _approve_company(app, "co@test.com")
+        _create_drive(app, company_id)
+        _login(client, "stu@test.com")
+
+        response = client.get("/student/drives/eligible")
+
+        assert response.status_code == 200
+        drive = response.get_json()["eligible_drives"][0]
+        assert drive["match_score"] is None
+        assert drive["match_category"] is None
 
 
 class TestStudentPlacement:

@@ -17,3 +17,4 @@ Werkzeug==2.3.0
 gunicorn==21.2.0
 SQLAlchemy==2.0.21
 pypdf>=3.8,<7
+fastembed>=0.7,<1

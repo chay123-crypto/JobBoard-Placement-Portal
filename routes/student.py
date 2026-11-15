@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.cache import cache
 from backend.celeryset import celery_app
 from backend.decorator import role_required
+from backend.matching import ResumeMatchingError, compute_match_scores, match_category
 from backend.models.models import (
     Application,
     CompanyProfile,
@@ -79,7 +80,6 @@ def all_drives():
 
 
 @student_bp.route("/student/<int:student_id>/applications", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
 def student_applications(student_id):
     if current_user.id != student_id:
@@ -88,7 +88,25 @@ def student_applications(student_id):
     if not student:
         return jsonify({"error": "Student profile not found"}), 404
     applications = Application.query.filter_by(student_id=student.id).all()
-    lis = [{"application_id": a.application_id, "drive_id": a.drive_id, "jobtitle": a.drive.jobtitle, "job_desc": a.drive.job_desc, "company_name": a.drive.company.name, "status": a.status} for a in applications]
+    drives = [application.drive for application in applications]
+    try:
+        match_scores = compute_match_scores(student, drives, db.session)
+    except ResumeMatchingError:
+        current_app.logger.warning("Could not calculate match scores for student %s", student.id)
+        return jsonify({"error": "Could not read your saved PDF resume. Upload a readable PDF to see match scores."}), 422
+    lis = [
+        {
+            "application_id": application.application_id,
+            "drive_id": application.drive_id,
+            "jobtitle": application.drive.jobtitle,
+            "job_desc": application.drive.job_desc,
+            "company_name": application.drive.company.name,
+            "status": application.status,
+            "match_score": match_scores[application.drive_id],
+            "match_category": match_category(match_scores[application.drive_id]),
+        }
+        for application in applications
+    ]
     return jsonify({"applications": lis}), 200
 
 
@@ -269,7 +287,6 @@ def withdraw(application_id):
 
 
 @student_bp.route("/drives/eligible", methods=["GET"])
-@cache.cached(timeout=60)
 @role_required("student")
 def eligible():
     student = StudentProfile.query.filter_by(user_id=current_user.id).first()
@@ -285,7 +302,29 @@ def eligible():
         if student.cgpa < drive.cgpa_above or student.dept not in drive.branches.split(",") or (drive.age_cat and drive.age_cat < age):
             continue
         eligible_drives.append(drive)
-    lis = [{"drive_id": p.drive_id, "company_id": p.company.name, "jobtitle": p.jobtitle, "skills": p.skills, "job_desc": p.job_desc, "open_postings": p.open_postings, "branches": p.branches, "cgpa_above": p.cgpa_above, "age_cat": p.age_cat, "deadline": p.deadline.strftime("%Y-%m-%d"), "status": p.status} for p in eligible_drives]
+    try:
+        match_scores = compute_match_scores(student, eligible_drives, db.session)
+    except ResumeMatchingError:
+        current_app.logger.warning("Could not calculate match scores for student %s", student.id)
+        return jsonify({"error": "Could not read your saved PDF resume. Upload a readable PDF to see match scores."}), 422
+    lis = [
+        {
+            "drive_id": drive.drive_id,
+            "company_id": drive.company.name,
+            "jobtitle": drive.jobtitle,
+            "skills": drive.skills,
+            "job_desc": drive.job_desc,
+            "open_postings": drive.open_postings,
+            "branches": drive.branches,
+            "cgpa_above": drive.cgpa_above,
+            "age_cat": drive.age_cat,
+            "deadline": drive.deadline.strftime("%Y-%m-%d"),
+            "status": drive.status,
+            "match_score": match_scores[drive.drive_id],
+            "match_category": match_category(match_scores[drive.drive_id]),
+        }
+        for drive in eligible_drives
+    ]
     return jsonify({"eligible_drives": lis}), 200
 
 

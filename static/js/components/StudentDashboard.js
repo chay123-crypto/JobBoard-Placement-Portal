@@ -400,6 +400,8 @@ StudentDashboard={
                 }
                 this.editingProfile=false
                 await this.fetchStudentInfo()
+                await this.fetchEligibleDrives()
+                await this.fetchApplications()
                 this.error=''
              }
             else{
@@ -425,6 +427,30 @@ StudentDashboard={
                 return app.status
             }
             return null
+        },
+        matchScoreClass(score){
+            if(score===null || score===undefined){
+                return 'badge bg-secondary'
+            }
+            if(score>75){
+                return 'badge bg-success'
+            }
+            if(score>=50){
+                return 'badge bg-warning text-dark'
+            }
+            return 'badge bg-danger'
+        },
+        matchScoreLabel(score){
+            if(score===null || score===undefined){
+                return 'PDF resume needed'
+            }
+            if(score>75){
+                return 'Great'
+            }
+            if(score>=50){
+                return 'Good'
+            }
+            return 'Weak'
         },
         async withdrawApplication(application_id){
             try{
@@ -599,6 +625,7 @@ StudentDashboard={
 </div>
 <div v-else class="card">
 <h5 class="card-title m-3">Drives You Qualify For</h5>
+<p class="text-muted small mx-3">Resume-to-role similarity estimate (not eligibility): Great &gt;75%, Good 50-75%, Weak &lt;50%.</p>
     <div class="table-responsive ms-3 me-3 mb-3">
         <table class="table table-hover mb-0">
             <thead class="table-light">
@@ -606,6 +633,7 @@ StudentDashboard={
                 <th class="text-center">Drive ID</th>
                 <th class="text-center">Company</th>
                 <th class="text-center">Job Title</th>
+                <th class="text-center">Match Score</th>
                 <th class="text-center">Eligible Branches</th>
                 <th class="text-center">CGPA Criteria</th>
                 <th class="text-center">Deadline</th>
@@ -618,6 +646,12 @@ StudentDashboard={
             <td class="text-center">{{ drive.drive_id }}</td>
             <td class="text-center">{{ drive.company_id }}</td>
             <td class="text-center">{{ drive.jobtitle }}</td>
+            <td class="text-center">
+                <span :class="matchScoreClass(drive.match_score)">
+                    <template v-if="drive.match_score!==null">{{drive.match_score.toFixed(1)}}% {{matchScoreLabel(drive.match_score)}}</template>
+                    <template v-else>{{matchScoreLabel(drive.match_score)}}</template>
+                </span>
+            </td>
             <td class="text-center">{{drive.branches}}</td>
             <td class="text-center">{{ drive.cgpa_above }}</td>
             <td class="text-center">{{ drive.deadline }}</td>    
@@ -696,6 +730,7 @@ StudentDashboard={
 </div>
 <div v-else class="card">
 <h5 class="card-title m-3">My Applications</h5>
+<p class="text-muted small mx-3">Resume-to-role similarity estimate (not eligibility): Great &gt;75%, Good 50-75%, Weak &lt;50%.</p>
 <div v-if="exportSuccess" class="alert alert-success">
     {{exportSuccess}}
     <button type="button" class="btn-close" @click="exportSuccess = ''"></button>
@@ -714,6 +749,7 @@ StudentDashboard={
             <tr>
                 <th class="text-center">Application ID</th>
                 <th class="text-center">Job Title</th>
+                <th class="text-center">Match Score</th>
                 <th class="text-center">Job Description</th>
                 <th class="text-center">Company Name</th>
                 <th class="text-center">Status</th>
@@ -723,6 +759,12 @@ StudentDashboard={
         <tr v-for="app in applications" :key="app.application_id">
             <td class="text-center">{{app.application_id}}</td>
             <td class="text-center">{{app.jobtitle}}</td>
+            <td class="text-center">
+                <span :class="matchScoreClass(app.match_score)">
+                    <template v-if="app.match_score!==null">{{app.match_score.toFixed(1)}}% {{matchScoreLabel(app.match_score)}}</template>
+                    <template v-else>{{matchScoreLabel(app.match_score)}}</template>
+                </span>
+            </td>
             <td class="text-center">{{app.job_desc}}</td>
             <td class="text-center">{{ app.company_name }}</td>
             <td class="text-center">
