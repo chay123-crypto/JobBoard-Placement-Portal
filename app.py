@@ -9,17 +9,21 @@ from backend.celeryset import celery_app
 from backend.init_db import init
 from backend.models.models import User, db
 
-from routes.admin import admin_bp
-from routes.auth import auth_bp
-from routes.company import company_bp
-from routes.student import student_bp
+from backend.routes.admin import admin_bp
+from backend.routes.auth import auth_bp
+from backend.routes.company import company_bp
+from backend.routes.student import student_bp
 
 manager = LoginManager()
 mail = Mail()
 
 
 def create_app(test_config=None):
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder="frontend/templates",
+        static_folder="frontend/static",
+    )
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///portal.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "wxyzab")

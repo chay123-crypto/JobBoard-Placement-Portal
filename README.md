@@ -1,10 +1,10 @@
 # JobBoard – Full-Stack Placement Portal
 
-A production-ready SPA built with **Vue.js + Flask** demonstrating real-world full-stack development patterns. This project showcases role-based dashboards, RESTful API design, background task processing, component-driven architecture, robust test coverage with pytest, and automated CI/CD workflows.
+A full-stack placement portal built with **Vue.js + Flask**. It includes role-based dashboards, placement-drive management, student applications, resume uploads, resume-to-drive similarity scores, background tasks, and automated tests.
 
 **Perfect for:** Learning Vue.js through a complete project | Portfolio demonstration | Understanding full-stack architecture | CI/CD implementation basics | Comprehensive Flask testing
 
-Demo Link: https://jobboard-placement-portal.onrender.com/
+Live demo: https://jobboard-placement-portal.onrender.com/
 
 ---
 
@@ -12,13 +12,14 @@ Demo Link: https://jobboard-placement-portal.onrender.com/
 
 By working through this project, I mastered:
 
-- **Vue.js Fundamentals**: Component composition, props/emit patterns, lifecycle hooks, conditional rendering, list management
+- **Vue.js Fundamentals**: Component-driven UI, lifecycle hooks, conditional rendering, and list management
 - **SPA Architecture**: Client-side routing, state management across components, API communication patterns
-- **Backend Integration**: RESTful API design, CORS, authentication, role-based access control (RBAC)
+- **Backend Integration**: Flask JSON APIs, session authentication, and role-based access control (RBAC)
 - **Async Operations**: Promises, async/await, handling API responses and errors
-- **Production Patterns**: Dynamic caching strategies (`Flask-Caching`), background task queues (`Celery`), email notifications (`Flask-Mail`)
-- **Database Design**: SQLAlchemy ORM, model relationships, migrations with indexing foreign key attributes
-- **Comprehensive Testing**: 90 unit & integration tests using `pytest`, in-memory SQLite, fixture isolation, and Celery/Redis mocking
+- **Application Services**: In-process caching (`Flask-Caching`), background task queues (`Celery`), and email notifications (`Flask-Mail`)
+- **Database Design**: SQLAlchemy ORM, model relationships, and indexed foreign keys
+- **Resume Matching**: PDF text extraction and FastEmbed sentence embeddings using `all-MiniLM-L6-v2`
+- **Testing**: 104 unit and integration tests using `pytest`, in-memory SQLite, and mocked background tasks
 - **CI/CD Pipeline**: GitHub Actions workflows for automated linting (`Ruff`), auto-formatting (`Black`), and running test suites
 - **Full-Stack Debugging**: Browser DevTools + Flask logging to trace issues end-to-end
 
@@ -30,12 +31,13 @@ By working through this project, I mastered:
 |---------|-----------|-----------------|
 | **Multi-role Dashboard** | Vue.js Components | Conditional UI rendering, component reusability |
 | **Role-Based Access** | Flask decorators + Auth | Session management, authorization patterns |
-| **Job Management** | Vue forms + REST API | Form validation, CRUD operations, API integration |
+| **Placement Drives** | Vue forms + REST API | Drive creation, approval, eligibility, and applications |
 | **Application Tracking** | Dynamic tables, Vue state | List rendering, filtering, real-time updates |
+| **Resume Matching** | pypdf + FastEmbed | PDF text extraction and semantic similarity estimates |
 | **Email Notifications** | Celery + Flask-Mail | Async task processing, scheduled jobs |
 | **CSV Export** | Celery background tasks | Long-running operations, progress tracking |
 | **Caching Layer** | Flask-Caching | Performance optimization, cache invalidation |
-| **Automated Testing** | Pytest | 90 tests covering all routes across all 4 blueprints |
+| **Automated Testing** | Pytest | 104 tests covering API routes and resume matching |
 | **CI/CD Pipeline** | GitHub Actions | Automated linting, code formatting, and test execution on push/PR |
 
 ---
@@ -46,11 +48,12 @@ By working through this project, I mastered:
 |-------|--------------|
 | **Frontend** | Vue.js, JavaScript (ES6+), HTML5, Bootstrap 5 |
 | **Backend** | Flask, Flask-SQLAlchemy, Flask-Login, Flask-Mail, Flask-Caching |
-| **Database** | SQLite (easily swapped to PostgreSQL) |
+| **Database** | SQLite |
+| **Resume parsing and matching** | pypdf, FastEmbed, all-MiniLM-L6-v2 |
 | **Task Queue** | Celery + Redis message broker |
 | **Scheduling** | Celery Beat (cron-like scheduler) |
 | **Email Testing** | MailHog (local SMTP catcher) |
-| **Caching** | Flask-Caching (Redis / NullCache for testing) |
+| **Caching** | Flask-Caching (SimpleCache by default; Redis can be configured) |
 | **Testing** | Pytest, Pytest-Flask, Pytest-Cov |
 | **Code Quality** | Ruff (linter), Black (formatter) |
 | **CI/CD** | GitHub Actions workflows |
@@ -58,69 +61,57 @@ By working through this project, I mastered:
 
 ---
 
-## 📁 Project Structure
-
-Every file in the codebase and its respective responsibility:
+## Project Structure
 
 ```
 JobBoard-Placement-Portal/
-├── app.py                      # Flask app factory, configuration & blueprint registration
-├── models/
-│   └── models.py               # SQLAlchemy ORM models (User, StudentProfile, CompanyProfile, Application, PlacementDrive, Interview)
-├── routes/
-│   ├── auth.py                 # Authentication endpoints (register, login, check auth, logout)
-│   ├── admin.py                # Admin dashboard API (stats, company/posting management, status updates)
-│   ├── student.py              # Student API (browse jobs, eligible drives, apply, track applications, withdraw, export CSV)
-│   └── company.py              # Company API (post drives, review applications, schedule interviews, export CSV)
-├── tasks.py                    # Celery background tasks (email reminders, CSV export, monthly reports)
-├── celeryset.py                # Celery configuration & beat schedule
-├── cache.py                    # Flask-Caching setup (supports Redis / NullCache dynamically)
-├── decorator.py                # Custom decorators (@login_required, @role_required)
-├── init_db.py                  # Database initialization & seed data (creates default admin)
-├── requirements.txt            # Python dependencies (Flask, SQLAlchemy, Celery, pytest, ruff, black, etc.)
-├── Dockerfile                  # Docker container definition
-├── docker-compose.yml          # Multi-container setup (App, Redis, Celery worker)
-├── .gitignore                  # Git ignore patterns
+├── app.py
+├── backend/
+│   ├── cache.py
+│   ├── celeryset.py
+│   ├── decorator.py
+│   ├── init_db.py
+│   ├── matching.py
+│   ├── resume_parser.py
+│   ├── tasks.py
+│   ├── models/models.py
+│   └── routes/
+│       ├── auth.py
+│       ├── admin.py
+│       ├── student.py
+│       └── company.py
+├── frontend/
+│   ├── templates/index.html
+│   └── static/
+│       ├── css/app.css
+│       └── js/
+│           ├── main.js
+│           └── components/
 ├── tests/
-│   └── test_app.py             # Comprehensive Pytest suite with 90 tests across all route blueprints
-├── templates/
-│   └── index.html              # Single HTML shell (Vue mounts here)
-├── static/
-│   ├── background.png          # UI background image asset
-│   └── js/
-│       ├── main.js             # Vue app entry point, routing, global state
-│       └── components/
-│           ├── Login.js            # Authentication component
-│           ├── Register.js         # Registration form (Student & Company)
-│           ├── AdminDashboard.js   # Admin overview (stats, user & drive mgmt)
-│           ├── StudentDashboard.js # Student job browse, eligibility & applications
-│           └── CompanyDashboard.js # Company job posting, applicant review & interview scheduling
+│   ├── test_app.py
+│   ├── test_cache.py
+│   └── test_matching.py
+├── Dockerfile
+├── requirements.txt
 ├── .github/
 │   └── workflows/
-│       ├── integration.yml     # CI pipeline (Ruff linting, Black formatting, Pytest execution)
-│       └── main.yml            # Scheduled keep-alive ping workflow
-├── specs/
-│   └── app.yaml                # App Engine deployment config
+│       ├── integration.yml
+│       └── main.yml
 └── README.md
 ```
-
-**Key Insight**: The backend serves as a pure REST API; the frontend is a single-page app that consumes it. This separation makes testing, scaling, and deployment easier.
 
 ---
 
 ## ⚙️ Prerequisites
 
-- **Python 3.8+** (Python 3.10+ recommended)
-- **WSL, Linux, or macOS** (Redis and MailHog run on Unix-like systems)
-  - Windows users: Use WSL2 or Docker
+- **Python 3.10+**
 - **Git**
-- **Redis** (for message broker in live mode)
-- **MailHog** (for email testing)
+- **Redis** (optional; required for Celery background tasks)
+- **Docker** (optional; for containerized setup)
 
 ### Quick Check
 ```bash
-python --version    # Should be 3.8+
-redis-cli --version
+python --version    # Python 3.10 or later
 ```
 
 ---
@@ -154,16 +145,16 @@ pip install -r requirements.txt
 ```bash
 python -m backend.init_db
 ```
-This creates `portal.db` / `placement.db` with default seed data:
+The app initializes `portal.db` and creates a default admin account:
 - Admin user: `admin@placement.in` / `admin@123`
 
 To optionally add demo student and company accounts with an approved sample drive, run:
 ```bash
 python -m backend.init_db --seed-demo
 ```
-Demo sign-in: `demo.student@placement.in` or `demo.company@placement.in`; both use `DemoAccess123!`. The login page includes one-click demo access. The seed is safe to rerun and does not add demo accounts during normal app startup. These shared public credentials are for development/demo databases only; never use them in production.
+Demo sign-in: `demo.student@placement.in` or `demo.company@placement.in`; both use `DemoAccess123!`. The login page includes one-click demo access. The seed is safe to rerun. The Dockerfile runs this seed command when its container starts, so Docker/Render deployments create the demo accounts automatically. These shared public credentials are public; do not use them with private or production data.
 
-### Step 5: Configure Email Testing (MailHog)
+### Optional: Configure Email Testing (MailHog)
 
 **On WSL/Linux/macOS:**
 ```bash
@@ -176,7 +167,7 @@ docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
 
 **Verify**: Visit `http://localhost:8025` in browser (should be empty initially).
 
-### Step 6: Start Redis
+### Optional: Start Redis for Background Jobs
 ```bash
 # On WSL/Linux/macOS:
 sudo service redis-server start
@@ -190,54 +181,21 @@ redis-cli ping  # Should print "PONG"
 
 ---
 
-## 🎮 Running the Application
+## Running the Application
 
-**This project requires 5 terminal windows.** Start them in this order:
-
-### Terminal 1: MailHog (Email Catcher)
-```bash
-mailhog
-```
-- Listens on `localhost:1025` (SMTP) and `localhost:8025` (Web UI)
-- View caught emails: `http://localhost:8025`
-
-### Terminal 2: Redis (Message Broker)
-```bash
-redis-server
-```
-
-### Terminal 3: Flask App
+Start the Flask app:
 ```bash
 python app.py
 ```
-- Output: `Running on http://127.0.0.1:5000`
-- Open `http://localhost:5000` in browser
+Then open `http://localhost:5000`.
 
-### Terminal 4: Celery Worker (Task Execution)
-```bash
-# Windows PowerShell:
-$env:PYTHONPATH="."
-celery -A tasks.celery_app worker --loglevel=info -P solo
-
-# macOS/Linux:
-export PYTHONPATH=.
-celery -A tasks.celery_app worker --loglevel=info
-```
-- Watches for background tasks and executes them
-- Logs like `[tasks.get_reminders] ... received` will appear
-
-### Terminal 5: Celery Beat (Scheduler)
-```bash
-celery -A celeryset beat -l DEBUG
-```
-- Triggers scheduled tasks (e.g., monthly reports)
-- Check `celeryset.py` to see the schedule
+The web app uses in-process caching by default and does not require Redis just to start. Redis is required for Celery background jobs. Email delivery requires an SMTP server; MailHog can be used for local testing.
 
 ---
 
-## 🧪 Comprehensive Testing Suite (`tests/test_app.py`)
+## Testing
 
-The project contains a complete **90-test suite** in `tests/test_app.py` covering all routes and edge cases.
+The suite currently contains **104 tests** across the application, caching, and resume matching.
 
 ### Test Coverage Highlights
 * **Auth Tests**: Registration (student, company, missing role, invalid role, duplicate email, duplicate contact, invalid DOB), Login (success, wrong password, non-existent user), Check Auth, Logout.
@@ -248,16 +206,16 @@ The project contains a complete **90-test suite** in `tests/test_app.py` coverin
 ### Running Tests
 ```bash
 # Run the complete suite
-python -m pytest tests/test_app.py
+python -m pytest tests/
 
 # Run with verbose output
-python -m pytest tests/test_app.py -v
+python -m pytest tests/ -v
 
 # Run a specific test class
 python -m pytest tests/test_app.py::TestCompanyCreateDrive
 ```
 
-*Note: The test suite dynamically configures `CACHE_TYPE = "NullCache"` and mocks Celery tasks (`export_csv.delay`, `get_reminders.delay`), enabling rapid, isolated execution in memory without requiring a live Redis server.*
+Tests use in-memory SQLite and do not require a live Redis server.
 
 ---
 
@@ -274,17 +232,11 @@ Build status for each commit is visible under the repository's **Actions** tab.
 
 ---
 
-## 🐳 Docker Setup
+## Docker and Render Deployment
 
-Run the entire application stack with Docker Compose:
+The repository includes a Dockerfile. Its startup command seeds demo accounts and then starts Gunicorn. On Render, deploy the repository as a Docker web service and leave the **Docker Command** override empty so Render uses the Dockerfile command.
 
-```bash
-# Build and start containers
-docker-compose up --build
-
-# Run in background
-docker-compose up -d
-```
+The app currently stores data in SQLite and uploaded resumes on the service filesystem. Render's filesystem is not persistent by default; use a persistent disk or an external database/file store if data must survive service replacement or redeployment. The public demo accounts are shared and must not contain private data.
 
 ---
 
@@ -294,7 +246,7 @@ docker-compose up -d
 2. **Register** a new student or company account
 3. **Browse drives** posted by companies
 4. **Apply** to a drive
-5. **Check MailHog** (`http://localhost:8025`) — view confirmation emails
+5. **Upload a PDF resume** to see extracted fields and resume-to-drive similarity estimates
 6. **Log in as Admin** (`admin@placement.in` / `admin@123`) to approve companies & view stats
 7. **Log in as Company** to review applications and schedule interviews
 
@@ -338,11 +290,14 @@ Three user roles control access:
 - Client-side validation for date format, CGPA, required fields
 - POST to `/auth/register`
 
-### `StudentDashboard.js` — Browse & Apply
+### `StudentDashboard.js` — Browse, Match & Apply
 - Fetches eligible and approved drives from `/student/all_drives` and `/student/drives/eligible`
 - Renders tables with drive requirements
+- Shows PDF resume-to-drive similarity estimates: Great (>75%), Good (50-75%), and Weak (<50%)
 - "Apply" button → POST to `/student/drive/apply/:id`
-- Application status tracking & profile resume management
+- Application status tracking and profile resume management
+
+Match scores are calculated from extracted PDF resume text and drive details. They are similarity estimates, not probabilities of getting hired or replacements for the portal's eligibility rules. DOC/DOCX uploads are accepted, but resume text extraction and match scoring currently require a readable PDF. Scanned PDFs without selectable text are not parsed.
 
 ### `CompanyDashboard.js` — Post & Review
 - Form to post placement drive (job title, branches, CGPA cutoff, deadline, salary)
@@ -406,9 +361,9 @@ GET   /student/student_dashboard              # Student metrics
 GET   /student/view_companies                 # Browse companies
 GET   /student/search_company?query=...       # Search company by name
 GET   /student/all_drives                     # View approved drives
-GET   /student/drives/eligible                # View drives student is eligible for
-GET   /student/student/:id/applications       # View student's applications
-PATCH /student/student/:id/edit-profile       # Update profile & resume
+GET   /student/drives/eligible                # Eligible drives with resume match scores
+GET   /student/student/:id/applications       # Applications with resume match scores
+PATCH /student/student/:id/edit-profile       # Update profile and upload resume
 POST  /student/drive/apply/:drive_id          # Apply to a placement drive
 PATCH /student/applications/:id/withdraw      # Withdraw pending application
 GET   /student/student/:id/placement          # Selected placement history
@@ -429,9 +384,9 @@ GET   /student/export_csv_status/:task_id     # Check CSV task status
 4. Progress / results queried via `/export_csv_status/:task_id`
 
 ### Key Tasks
-* **`export_csv`** (`tasks.py`): Generates CSV exports of applications for students/companies and sends them via email.
-* **`get_reminders`** (`tasks.py`): Sends email reminders to students with interview date, time, and location.
-* **`generate_monthly_reports`** (`tasks.py`): Periodic task (Celery Beat) generating monthly placement analytics HTML reports for approved companies.
+* **`export_csv`** (`backend/tasks.py`): Generates CSV exports of applications for students/companies and sends them via email.
+* **`get_reminders`** (`backend/tasks.py`): Sends email reminders to students with interview date, time, and location.
+* **`generate_monthly_reports`** (`backend/tasks.py`): Periodic task (Celery Beat) generating monthly placement analytics HTML reports for approved companies.
 
 ---
 
@@ -446,28 +401,16 @@ GET   /student/export_csv_status/:task_id     # Check CSV task status
 
 ---
 
-## 🐛 Common Issues & Fixes
+## Troubleshooting
 
-### Issue: "Redis connection refused"
+### Redis connection errors
+Redis is only needed for Celery background tasks. Flask-Caching uses `SimpleCache` by default. To use Redis for caching, configure `CACHE_TYPE=RedisCache` and set `CACHE_REDIS_URL` or `REDIS_URL`.
 ```text
 Error: ConnectionError: Error connecting to redis://localhost:6379/0
 ```
-**Fix:**
-```bash
-redis-server  # or: sudo service redis-server start
-# Or Docker: docker run -d -p 6379:6379 redis:latest
-```
 
-### Issue: "MailHog not catching emails"
-**Verify:**
-1. MailHog running on `localhost:8025`
-2. `MAIL_SERVER = 'localhost'`, `MAIL_PORT = 1025` in `app.py`
-
-### Issue: "Celery worker not picking up tasks"
-**Debug:**
-1. Ensure Redis is running: `redis-cli ping` → `PONG`
-2. Check Celery worker log output
-3. Restart worker with `PYTHONPATH=.` set
+### Resume upload or match score fails
+Check the Flask/Render service logs for the server traceback. PDF uploads are limited to 5 MB and text extraction reads up to five pages. Scanned/image-only PDFs need OCR, which is not currently included. FastEmbed downloads the MiniLM model the first time a match score is requested.
 
 ---
 
@@ -489,9 +432,10 @@ This project is open-source and available for educational purposes.
 
 ## ✨ Summary
 
-**JobBoard – Placement Portal** is a full-featured placement portal demonstrating modern web development patterns:
+**JobBoard – Placement Portal** is a full-stack placement portal featuring:
 - ✅ Learn Vue.js component architecture
 - ✅ Master Flask REST API design
 - ✅ Understand async task processing with Celery
-- ✅ 90-test automated testing suite with Pytest
+- ✅ Resume-to-drive semantic similarity scoring
+- ✅ 104-test automated testing suite with Pytest
 - ✅ CI/CD pipeline automation with GitHub Actions

@@ -715,7 +715,7 @@ class TestCompanyExport:
         _login(client, "co@test.com")
         mock_task = MagicMock()
         mock_task.id = "fake-task-id"
-        with patch("routes.company.export_csv.delay", return_value=mock_task):
+        with patch("backend.routes.company.export_csv.delay", return_value=mock_task):
             response = client.post("/company/export")
         assert response.status_code == 202
         assert response.get_json()["task_id"] == "fake-task-id"
@@ -730,7 +730,7 @@ class TestCompanyCsvStatus:
         mock_result.status = "PENDING"
         mock_result.successful.return_value = False
         mock_result.result = None
-        with patch("routes.company.AsyncResult", return_value=mock_result):
+        with patch("backend.routes.company.AsyncResult", return_value=mock_result):
             response = client.get("/company/exported_csv_status/fake-id")
         assert response.status_code == 200
         assert response.get_json()["status"] == "PENDING"
@@ -765,7 +765,7 @@ class TestCompanyScheduleInterview:
         _login(client, "co@test.com")
         mock_task = MagicMock()
         mock_task.id = "reminder-task-id"
-        with patch("routes.company.get_reminders.delay", return_value=mock_task):
+        with patch("backend.routes.company.get_reminders.delay", return_value=mock_task):
             response = client.post(
                 f"/company/schedule_interview/{appl_id}",
                 json={
@@ -855,7 +855,7 @@ class TestStudentApplications:
             user_id = student.user_id
 
         _login(client, "stu@test.com")
-        with patch("routes.student.compute_match_scores", return_value={drive_id: 82.5}):
+        with patch("backend.routes.student.compute_match_scores", return_value={drive_id: 82.5}):
             response = client.get(f"/student/student/{user_id}/applications")
 
         assert response.status_code == 200
@@ -963,7 +963,7 @@ class TestStudentEligibleDrives:
         cid = _approve_company(app, "co@test.com")
         drive_id = _create_drive(app, cid)
         _login(client, "stu@test.com")
-        with patch("routes.student.compute_match_scores", return_value={drive_id: 50.0}):
+        with patch("backend.routes.student.compute_match_scores", return_value={drive_id: 50.0}):
             response = client.get("/student/drives/eligible")
         assert response.status_code == 200
         drive = response.get_json()["eligible_drives"][0]
@@ -1074,7 +1074,7 @@ class TestStudentResume:
         app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
         resume_text = "Experienced Python developer with SQL and Flask project work. " "CGPA: 8.5/10. Expected graduation year: 2027. " "Built and maintained several software applications."
 
-        with patch("routes.student.pdf_to_text", return_value=resume_text):
+        with patch("backend.routes.student.pdf_to_text", return_value=resume_text):
             response = client.patch(
                 f"/student/student/{uid}/edit-profile",
                 data={"resume": (io.BytesIO(b"%PDF-1.7 test"), "resume.pdf")},
@@ -1115,7 +1115,7 @@ class TestStudentResume:
             uid = user.id
         app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
 
-        with patch("routes.student.pdf_to_text", side_effect=ValueError("Invalid PDF")):
+        with patch("backend.routes.student.pdf_to_text", side_effect=ValueError("Invalid PDF")):
             response = client.patch(
                 f"/student/student/{uid}/edit-profile",
                 data={"resume": (io.BytesIO(b"%PDF-1.7 invalid"), "resume.pdf")},
@@ -1165,7 +1165,7 @@ class TestStudentExport:
         _login(client, "stu@test.com")
         mock_task = MagicMock()
         mock_task.id = "student-export-id"
-        with patch("routes.student.export_csv.delay", return_value=mock_task):
+        with patch("backend.routes.student.export_csv.delay", return_value=mock_task):
             response = client.post("/student/export")
         assert response.status_code == 202
         assert response.get_json()["task_id"] == "student-export-id"
@@ -1179,7 +1179,7 @@ class TestStudentCsvStatus:
         mock_result.status = "SUCCESS"
         mock_result.successful.return_value = True
         mock_result.result = "path/to/file.csv"
-        with patch("routes.student.AsyncResult", return_value=mock_result):
+        with patch("backend.routes.student.AsyncResult", return_value=mock_result):
             response = client.get("/student/export_csv_status/fake-id")
         assert response.status_code == 200
         assert response.get_json()["status"] == "SUCCESS"
