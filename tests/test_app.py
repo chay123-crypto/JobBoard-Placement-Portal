@@ -1035,11 +1035,7 @@ class TestStudentResume:
             user = User.query.filter_by(email="stu@test.com").first()
             uid = user.id
         app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
-        resume_text = (
-            "Experienced Python developer with SQL and Flask project work. "
-            "CGPA: 8.5/10. Expected graduation year: 2027. "
-            "Built and maintained several software applications."
-        )
+        resume_text = "Experienced Python developer with SQL and Flask project work. " "CGPA: 8.5/10. Expected graduation year: 2027. " "Built and maintained several software applications."
 
         with patch("routes.student.pdf_to_text", return_value=resume_text):
             response = client.patch(
@@ -1136,6 +1132,7 @@ class TestStudentExport:
             response = client.post("/student/export")
         assert response.status_code == 202
         assert response.get_json()["task_id"] == "student-export-id"
+
 
 class TestStudentCsvStatus:
     def test_csv_status(self, client):

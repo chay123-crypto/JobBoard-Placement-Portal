@@ -7,13 +7,54 @@ from sqlalchemy import select
 from backend.models.models import PlacementDrive
 
 SEED = {
-    "python", "java", "javascript", "typescript", "sql", "postgresql", "mongodb",
-    "react", "vue", "node.js", "fastapi", "flask", "django", "docker", "git", "sqlite",
-    "aws", "linux", "c++", "c#", "machine learning", "deep learning", "pandas",
-    "numpy", "pytorch", "tensorflow", "html", "css", "tailwind", "rest api",
-    "scikit-learn", "langchain", "langgraph", "chromadb", "faiss", "computer networks",
-    "networking", "crewai", "azure", "jenkins", "github actions", "devops", "kali",
-    "metasploit", "operating systems", "object oriented programming", "go", "kotlin",
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "sql",
+    "postgresql",
+    "mongodb",
+    "react",
+    "vue",
+    "node.js",
+    "fastapi",
+    "flask",
+    "django",
+    "docker",
+    "git",
+    "sqlite",
+    "aws",
+    "linux",
+    "c++",
+    "c#",
+    "machine learning",
+    "deep learning",
+    "pandas",
+    "numpy",
+    "pytorch",
+    "tensorflow",
+    "html",
+    "css",
+    "tailwind",
+    "rest api",
+    "scikit-learn",
+    "langchain",
+    "langgraph",
+    "chromadb",
+    "faiss",
+    "computer networks",
+    "networking",
+    "crewai",
+    "azure",
+    "jenkins",
+    "github actions",
+    "devops",
+    "kali",
+    "metasploit",
+    "operating systems",
+    "object oriented programming",
+    "go",
+    "kotlin",
     "react-native",
 }
 
@@ -39,16 +80,10 @@ def pdf_to_text(data, max_pages=5):
 
 
 def load_vocab(session):
-    rows = session.scalars(
-        select(PlacementDrive.skills).where(PlacementDrive.skills.isnot(None))
-    ).all()
+    rows = session.scalars(select(PlacementDrive.skills).where(PlacementDrive.skills.isnot(None))).all()
     vocab = set(SEED)
     for row in rows:
-        vocab.update(
-            skill.strip().lower()
-            for skill in re.split(r"[,;\n|]", row)
-            if len(skill.strip()) >= 2
-        )
+        vocab.update(skill.strip().lower() for skill in re.split(r"[,;\n|]", row) if len(skill.strip()) >= 2)
     return vocab
 
 
@@ -60,11 +95,7 @@ def _has(term, text):
 def extract_skills(raw, vocab):
     text = raw.lower()
     found = {skill for skill in vocab if _has(skill, text)}
-    found.update(
-        canonical
-        for alias, canonical in ALIASES.items()
-        if _has(alias, text)
-    )
+    found.update(canonical for alias, canonical in ALIASES.items() if _has(alias, text))
     return sorted(found)
 
 
@@ -78,9 +109,5 @@ def extract_cgpa(raw):
 
 
 def extract_grad_year(raw):
-    years = [
-        int(year)
-        for year in re.findall(r"\b(20[2-3]\d)\b", raw)
-        if 2024 <= int(year) <= 2035
-    ]
+    years = [int(year) for year in re.findall(r"\b(20[2-3]\d)\b", raw) if 2024 <= int(year) <= 2035]
     return max(years) if years else None

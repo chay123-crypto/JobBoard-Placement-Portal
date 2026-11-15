@@ -179,10 +179,15 @@ def edit_profile(student_id):
             current_app.logger.warning("Could not remove replaced resume %s", old_resume_path)
 
     cache.clear()
-    return jsonify({
-        "message": f"Profile of {student.name} updated successfully",
-        "resume_extraction": resume_extraction,
-    }), 200
+    return (
+        jsonify(
+            {
+                "message": f"Profile of {student.name} updated successfully",
+                "resume_extraction": resume_extraction,
+            }
+        ),
+        200,
+    )
 
 
 @student_bp.route("/drive/apply/<int:drive_id>", methods=["POST"])
