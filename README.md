@@ -161,7 +161,7 @@ To optionally add demo student and company accounts with an approved sample driv
 ```bash
 python -m backend.init_db --seed-demo
 ```
-The command prompts you to set passwords for `demo.student@placement.in` and `demo.company@placement.in`. It is safe to rerun and does not add demo accounts during normal app startup. Use demo seeding only in a development/demo database.
+Demo sign-in: `demo.student@placement.in` or `demo.company@placement.in`; both use `DemoAccess123!`. The login page includes one-click demo access. The seed is safe to rerun and does not add demo accounts during normal app startup. These shared public credentials are for development/demo databases only; never use them in production.
 
 ### Step 5: Configure Email Testing (MailHog)
 

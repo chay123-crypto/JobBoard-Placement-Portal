@@ -31,6 +31,17 @@ const Login={
             this.error='Something went wrong.Try again.'
         }
     },
+    async loginAsDemo(role){
+        const demoAccounts={
+            student:{email:'demo.student@placement.in',password:'DemoAccess123!'},
+            company:{email:'demo.company@placement.in',password:'DemoAccess123!'}
+        }
+        const account=demoAccounts[role]
+        this.email=account.email
+        this.password=account.password
+        this.error=''
+        await this.handlelogin()
+    },
     goRegister(){
         this.$emit('go-register')
     }
@@ -63,6 +74,14 @@ const Login={
             <input id="login-password" v-model="password" type="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
           </div>
           <button class="btn btn-primary w-100 auth-submit" @click="handlelogin">Sign in</button>
+          <div class="auth-demo">
+            <p class="auth-demo__title">Explore with a demo account</p>
+            <p class="auth-demo__note">Shared sample accounts; please don't enter personal information.</p>
+            <div class="auth-demo__actions">
+              <button class="btn btn-outline-primary" type="button" @click="loginAsDemo('company')">Continue as demo company</button>
+              <button class="btn btn-outline-secondary" type="button" @click="loginAsDemo('student')">Continue as demo student</button>
+            </div>
+          </div>
           <p class="auth-switch">New to Career Portal? <a href="#" @click.prevent="goRegister">Create an account</a></p>
         </div>
       </div>

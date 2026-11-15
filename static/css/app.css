@@ -326,6 +326,40 @@ a:hover {
     background: var(--portal-primary-dark);
 }
 
+.auth-demo {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--portal-border);
+}
+
+.auth-demo__title {
+    margin: 0 0 4px;
+    color: var(--portal-ink);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.auth-demo__note {
+    margin: 0 0 12px;
+    color: var(--portal-muted);
+    font-size: 0.76rem;
+    text-align: center;
+}
+
+.auth-demo__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.auth-demo__actions .btn {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 650;
+}
+
 .auth-switch {
     margin: 22px 0 0;
     color: var(--portal-muted);
@@ -767,6 +801,10 @@ a:hover {
 
     .auth-panel {
         padding: 32px 26px 36px;
+    }
+
+    .auth-demo__actions {
+        grid-template-columns: 1fr;
     }
 
     .student-dashboard > .row.mb-4,

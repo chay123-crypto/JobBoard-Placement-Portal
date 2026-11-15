@@ -1,6 +1,5 @@
 import argparse
 from datetime import date, datetime
-from getpass import getpass
 
 from backend.models.models import (
     CompanyProfile,
@@ -14,6 +13,7 @@ DEMO_STUDENT_EMAIL = "demo.student@placement.in"
 DEMO_COMPANY_EMAIL = "demo.company@placement.in"
 DEMO_STUDENT_CONTACT = "9000000001"
 DEMO_COMPANY_CONTACT = "9000000002"
+DEMO_PASSWORD = "DemoAccess123!"
 
 
 def init():
@@ -49,22 +49,19 @@ def _get_or_create_demo_user(email, role, contact_no, password):
     return user
 
 
-def seed_demo(student_password, company_password):
-    if not student_password or not company_password:
-        raise ValueError("Both demo account passwords are required")
-
+def seed_demo():
     db.create_all()
     student_user = _get_or_create_demo_user(
         DEMO_STUDENT_EMAIL,
         "student",
         DEMO_STUDENT_CONTACT,
-        student_password,
+        DEMO_PASSWORD,
     )
     company_user = _get_or_create_demo_user(
         DEMO_COMPANY_EMAIL,
         "company",
         DEMO_COMPANY_CONTACT,
-        company_password,
+        DEMO_PASSWORD,
     )
 
     student = StudentProfile.query.filter_by(user_id=student_user.id).first()
@@ -121,16 +118,6 @@ def seed_demo(student_password, company_password):
     db.session.commit()
 
 
-def _prompt_password(label):
-    password = getpass(f"Set password for {label}: ")
-    confirmation = getpass(f"Confirm password for {label}: ")
-    if not password:
-        raise ValueError("Demo account passwords cannot be empty")
-    if password != confirmation:
-        raise ValueError(f"Passwords for {label} do not match")
-    return password
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Initialize the placement portal database.")
     parser.add_argument(
@@ -144,7 +131,5 @@ if __name__ == "__main__":
 
     with app.app_context():
         if args.seed_demo:
-            student_password = _prompt_password("demo student")
-            company_password = _prompt_password("demo company")
-            seed_demo(student_password, company_password)
+            seed_demo()
             print("Demo accounts and approved drive are ready.")
