@@ -1,7 +1,9 @@
-from flask import Blueprint, jsonify, request
-from flask_login import login_user, logout_user, login_required, current_user
-from backend.models.models import db, User, StudentProfile, CompanyProfile
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+from flask_login import current_user, login_required, login_user, logout_user
+
+from backend.models.models import CompanyProfile, StudentProfile, User, db
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -31,7 +33,7 @@ def register():
             dob = datetime.strptime(inputs.get("dob"), "%Y-%m-%d").date()
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid DOB format"}), 400
-        profile = StudentProfile(user_id=acct.id, name=inputs.get("name"), dept=inputs.get("dept"), dob=dob, year=inputs.get("year"), cgpa=inputs.get("cgpa"), resume_path=inputs.get("resume_path", ""))
+        profile = StudentProfile(user_id=acct.id, name=inputs.get("name"), dept=inputs.get("dept"), dob=dob, year=inputs.get("year"), cgpa=inputs.get("cgpa"), resume_path="")
     else:
         profile = CompanyProfile(user_id=acct.id, name=inputs.get("name"), website=inputs.get("website"), location=inputs.get("location"), field=inputs.get("field"))
     db.session.add(profile)

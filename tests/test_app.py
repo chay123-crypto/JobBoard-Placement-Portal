@@ -1,3 +1,4 @@
+import io
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -1027,6 +1028,103 @@ class TestStudentResume:
         response = client.get(f"/student/{uid}/resume")
         assert response.status_code == 404
 
+    def test_pdf_upload_saves_resume_and_returns_extracted_fields(self, client, app, tmp_path):
+        _register_student(client)
+        _login(client, "stu@test.com")
+        with app.app_context():
+            user = User.query.filter_by(email="stu@test.com").first()
+            uid = user.id
+        app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
+        resume_text = (
+            "Experienced Python developer with SQL and Flask project work. "
+            "CGPA: 8.5/10. Expected graduation year: 2027. "
+            "Built and maintained several software applications."
+        )
+
+        with patch("routes.student.pdf_to_text", return_value=resume_text):
+            response = client.patch(
+                f"/student/student/{uid}/edit-profile",
+                data={"resume": (io.BytesIO(b"%PDF-1.7 test"), "resume.pdf")},
+                content_type="multipart/form-data",
+            )
+
+        assert response.status_code == 200
+        extraction = response.get_json()["resume_extraction"]
+        assert extraction == {
+            "skills": ["flask", "python", "sql"],
+            "cgpa": 8.5,
+            "grad_year": 2027,
+        }
+        with app.app_context():
+            student = StudentProfile.query.filter_by(user_id=uid).one()
+            assert student.resume_path
+            with open(student.resume_path, "rb") as saved_file:
+                assert saved_file.read() == b"%PDF-1.7 test"
+
+    def test_pdf_upload_rejects_invalid_pdf(self, client, app):
+        _register_student(client)
+        _login(client, "stu@test.com")
+        with app.app_context():
+            user = User.query.filter_by(email="stu@test.com").first()
+            uid = user.id
+        response = client.patch(
+            f"/student/student/{uid}/edit-profile",
+            data={"resume": (io.BytesIO(b"not a pdf"), "resume.pdf")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 415
+
+    def test_pdf_upload_rejects_unreadable_pdf_without_saving(self, client, app, tmp_path):
+        _register_student(client)
+        _login(client, "stu@test.com")
+        with app.app_context():
+            user = User.query.filter_by(email="stu@test.com").first()
+            uid = user.id
+        app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
+
+        with patch("routes.student.pdf_to_text", side_effect=ValueError("Invalid PDF")):
+            response = client.patch(
+                f"/student/student/{uid}/edit-profile",
+                data={"resume": (io.BytesIO(b"%PDF-1.7 invalid"), "resume.pdf")},
+                content_type="multipart/form-data",
+            )
+
+        assert response.status_code == 422
+        with app.app_context():
+            student = StudentProfile.query.filter_by(user_id=uid).one()
+            assert student.resume_path == ""
+        assert list(tmp_path.iterdir()) == []
+
+    def test_docx_upload_still_works_without_pdf_extraction(self, client, app, tmp_path):
+        _register_student(client)
+        _login(client, "stu@test.com")
+        with app.app_context():
+            user = User.query.filter_by(email="stu@test.com").first()
+            uid = user.id
+        app.config["RESUME_UPLOAD_FOLDER"] = str(tmp_path)
+
+        response = client.patch(
+            f"/student/student/{uid}/edit-profile",
+            data={"resume": (io.BytesIO(b"docx content"), "resume.docx")},
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 200
+        assert response.get_json()["resume_extraction"] is None
+
+    def test_resume_upload_rejects_oversized_file(self, client, app):
+        _register_student(client)
+        _login(client, "stu@test.com")
+        with app.app_context():
+            user = User.query.filter_by(email="stu@test.com").first()
+            uid = user.id
+        response = client.patch(
+            f"/student/student/{uid}/edit-profile",
+            data={"resume": (io.BytesIO(b"x" * 5_000_001), "resume.docx")},
+            content_type="multipart/form-data",
+        )
+        assert response.status_code == 413
+
 
 class TestStudentExport:
     def test_export_queued(self, client):
@@ -1038,7 +1136,6 @@ class TestStudentExport:
             response = client.post("/student/export")
         assert response.status_code == 202
         assert response.get_json()["task_id"] == "student-export-id"
-
 
 class TestStudentCsvStatus:
     def test_csv_status(self, client):

@@ -1,17 +1,35 @@
-from flask import Blueprint, jsonify, request, send_file
-from flask_login import current_user
-from backend.decorator import role_required
-from datetime import date, datetime
-from backend.models.models import StudentProfile, CompanyProfile, db, Application, PlacementDrive
 import os
-from backend.cache import cache
-from werkzeug.utils import secure_filename
+import secrets
+from datetime import date, datetime
+
 from celery.result import AsyncResult
+from flask import Blueprint, current_app, jsonify, request, send_file
+from flask_login import current_user
+from pypdf.errors import PdfReadError, PdfStreamError
+from sqlalchemy.exc import SQLAlchemyError
+
+from backend.cache import cache
 from backend.celeryset import celery_app
+from backend.decorator import role_required
+from backend.models.models import (
+    Application,
+    CompanyProfile,
+    PlacementDrive,
+    StudentProfile,
+    db,
+)
+from backend.resume_parser import (
+    extract_cgpa,
+    extract_grad_year,
+    extract_skills,
+    load_vocab,
+    pdf_to_text,
+)
 from backend.tasks import export_csv
 
 student_bp = Blueprint("student", __name__, url_prefix="/student")
 upload_folder = "uploads/resumes"
+MAX_RESUME_SIZE = 5_000_000
 
 
 @student_bp.route("/student_dashboard", methods=["GET"])
@@ -82,6 +100,53 @@ def edit_profile(student_id):
     student = StudentProfile.query.filter_by(user_id=current_user.id).first()
     if not student:
         return jsonify({"error": "Student profile not found"}), 404
+
+    resume_file = request.files.get("resume")
+    resume_path = None
+    resume_extraction = None
+    upload_directory = os.path.abspath(
+        current_app.config.get(
+            "RESUME_UPLOAD_FOLDER",
+            os.path.join(current_app.root_path, upload_folder),
+        )
+    )
+    if resume_file is not None:
+        original_filename = resume_file.filename or ""
+        if not original_filename:
+            return jsonify({"error": "No resume file selected"}), 400
+        extension = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+        if extension not in {"pdf", "doc", "docx"}:
+            return jsonify({"error": "Only PDF/DOC/DOCX allowed"}), 400
+
+        data = resume_file.stream.read(MAX_RESUME_SIZE + 1)
+        if len(data) > MAX_RESUME_SIZE:
+            return jsonify({"error": "File too large. Max 5 MB"}), 413
+        if not data:
+            return jsonify({"error": "The uploaded file is empty"}), 400
+
+        if extension == "pdf":
+            if not data.startswith(b"%PDF"):
+                return jsonify({"error": "Invalid PDF file"}), 415
+            try:
+                resume_text = pdf_to_text(data)
+            except (PdfReadError, PdfStreamError, ValueError, EOFError):
+                return jsonify({"error": "Could not read this PDF"}), 422
+            if len(resume_text.strip()) < 50:
+                return jsonify({"error": "No text found (scanned PDF?)"}), 422
+
+            skills = extract_skills(resume_text, load_vocab(db.session))
+            resume_extraction = {
+                "skills": skills,
+                "cgpa": extract_cgpa(resume_text),
+                "grad_year": extract_grad_year(resume_text),
+            }
+
+        os.makedirs(upload_directory, exist_ok=True)
+        filename = f"{student.id}_{secrets.token_hex(16)}.{extension}"
+        resume_path = os.path.join(upload_directory, filename)
+        with open(resume_path, "wb") as saved_file:
+            saved_file.write(data)
+
     inputs = request.form
     if "name" in inputs:
         student.name = inputs["name"]
@@ -91,20 +156,33 @@ def edit_profile(student_id):
         student.cgpa = inputs["cgpa"]
     if "dept" in inputs:
         student.dept = inputs["dept"]
-    if "resume" in request.files:
-        file = request.files["resume"]
-        ALLOWED = {"pdf", "doc", "docx"}
-        if file.filename.split(".")[-1].lower() not in ALLOWED:
-            return jsonify({"error": "Only PDF/DOC/DOCX allowed"}), 400
-        if file.filename:
-            os.makedirs(upload_folder, exist_ok=True)
-            filename = secure_filename(f"{student_id} - {file.filename}")
-            filepath = os.path.join(upload_folder, filename)
-            file.save(filepath)
-            student.resume_path = filepath
-    db.session.commit()
+    old_resume_path = student.resume_path
+    if resume_path:
+        student.resume_path = resume_path
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        if resume_path and os.path.exists(resume_path):
+            try:
+                os.remove(resume_path)
+            except OSError:
+                current_app.logger.warning("Could not remove unsaved resume %s", resume_path)
+        return jsonify({"error": "Could not save profile"}), 500
+
+    if resume_path and old_resume_path and os.path.abspath(old_resume_path) != resume_path:
+        try:
+            old_path = os.path.abspath(old_resume_path)
+            if os.path.commonpath([upload_directory, old_path]) == upload_directory and os.path.isfile(old_path):
+                os.remove(old_path)
+        except (OSError, ValueError):
+            current_app.logger.warning("Could not remove replaced resume %s", old_resume_path)
+
     cache.clear()
-    return jsonify({"message": f"Profile of {student.name} updated successfully"}), 200
+    return jsonify({
+        "message": f"Profile of {student.name} updated successfully",
+        "resume_extraction": resume_extraction,
+    }), 200
 
 
 @student_bp.route("/drive/apply/<int:drive_id>", methods=["POST"])

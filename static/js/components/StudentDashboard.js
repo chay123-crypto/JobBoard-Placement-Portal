@@ -379,14 +379,31 @@ StudentDashboard={
                 credentials:'include',
                 body:form
             })
+            const data=await res.json()
             if(res.ok){
-                this.success="Profile updated succesfully"
+                this.success="Profile updated successfully"
+                if(data.resume_extraction){
+                    const extraction=data.resume_extraction
+                    const suggestions=[]
+                    if(extraction.skills.length){
+                        suggestions.push(`Skills found: ${extraction.skills.join(', ')}`)
+                    }
+                    if(extraction.cgpa!==null){
+                        suggestions.push(`CGPA found: ${extraction.cgpa}`)
+                    }
+                    if(extraction.grad_year!==null){
+                        suggestions.push(`Graduation year found: ${extraction.grad_year}`)
+                    }
+                    this.success+=suggestions.length
+                        ? ` Resume suggestions: ${suggestions.join('; ')}.`
+                        : ' The PDF uploaded, but no skills or academic details were detected.'
+                }
                 this.editingProfile=false
                 await this.fetchStudentInfo()
                 this.error=''
              }
             else{
-                this.error="Failed to edit profile"
+                this.error=data.error||"Failed to edit profile"
                 }
             }
             catch(err){
