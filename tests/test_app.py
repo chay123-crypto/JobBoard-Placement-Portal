@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Response
 
 from app import create_app
 from backend.cache import cache
@@ -681,39 +682,46 @@ class TestCompanyGetStudentInfo:
         assert "student" in response.get_json()
 
 
-def test_cached_student_dashboards_are_isolated_by_user(app):
+def test_cached_student_dashboards_are_isolated_by_user():
+    application, _mail = create_app(TEST_CONFIG)
+    application.response_class = Response
     cache.clear()
+    try:
+        client_one = application.test_client()
+        client_two = application.test_client()
+        _register_student(client_one, "one@test.com", "1111111111")
+        _register_student(client_two, "two@test.com", "3333333333")
+        _register_company(client_one)
+        company_id = _approve_company(application, "co@test.com")
+        drive_id = _create_drive(application, company_id)
 
-    client_one = app.test_client()
-    client_two = app.test_client()
-    _register_student(client_one, "one@test.com", "1111111111")
-    _register_student(client_two, "two@test.com", "3333333333")
-    _register_company(client_one)
-    company_id = _approve_company(app, "co@test.com")
-    drive_id = _create_drive(app, company_id)
+        with application.app_context():
+            first_student = StudentProfile.query.join(User).filter(User.email == "one@test.com").one()
+            second_student = StudentProfile.query.join(User).filter(User.email == "two@test.com").one()
+            assert first_student.id != second_student.id
+            db.session.add(Application(student_id=second_student.id, drive_id=drive_id))
+            db.session.commit()
 
-    with app.app_context():
-        first_student = StudentProfile.query.join(User).filter(User.email == "one@test.com").one()
-        second_student = StudentProfile.query.join(User).filter(User.email == "two@test.com").one()
-        assert first_student.id != second_student.id
-        db.session.add(Application(student_id=second_student.id, drive_id=drive_id))
-        db.session.commit()
+        first_login = _login(client_one, "one@test.com").get_json()
+        second_login = _login(client_two, "two@test.com").get_json()
+        assert first_login["id"] != second_login["id"]
+        with client_one.session_transaction() as session:
+            assert session["_user_id"] == str(first_login["id"])
+        with client_two.session_transaction() as session:
+            assert session["_user_id"] == str(second_login["id"])
+        first_dashboard = client_one.get("/student/student_dashboard")
+        second_dashboard = client_two.get("/student/student_dashboard")
 
-    first_login = _login(client_one, "one@test.com").get_json()
-    second_login = _login(client_two, "two@test.com").get_json()
-    assert first_login["id"] != second_login["id"]
-    with client_one.session_transaction() as session:
-        assert session["_user_id"] == str(first_login["id"])
-    with client_two.session_transaction() as session:
-        assert session["_user_id"] == str(second_login["id"])
-    first_dashboard = client_one.get("/student/student_dashboard")
-    second_dashboard = client_two.get("/student/student_dashboard")
-
-    assert first_dashboard.status_code == 200
-    assert first_dashboard.get_json()["num_applications"] == 0
-    assert second_dashboard.status_code == 200
-    assert second_dashboard.get_json()["num_applications"] == 1
-    assert app.test_client().get("/student/student_dashboard").status_code == 401
+        assert first_dashboard.status_code == 200
+        assert first_dashboard.get_json()["num_applications"] == 0
+        assert second_dashboard.status_code == 200
+        assert second_dashboard.get_json()["num_applications"] == 1
+        assert application.test_client().get("/student/student_dashboard").status_code == 401
+    finally:
+        cache.clear()
+        with application.app_context():
+            db.session.remove()
+            db.drop_all()
 
 
 class TestCompanyDriveApplicants:
