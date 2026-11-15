@@ -24,11 +24,7 @@ def register():
         required_fields = ("email", "contact_no", "password", "name", "dept", "dob", "year", "cgpa")
     else:
         required_fields = ("email", "contact_no", "password", "name", "website", "location", "field")
-    missing_fields = [
-        field
-        for field in required_fields
-        if inputs.get(field) is None or (isinstance(inputs.get(field), str) and not inputs[field].strip())
-    ]
+    missing_fields = [field for field in required_fields if inputs.get(field) is None or (isinstance(inputs.get(field), str) and not inputs[field].strip())]
     if missing_fields:
         return jsonify({"error": f"Required fields missing: {', '.join(missing_fields)}"}), 400
 
